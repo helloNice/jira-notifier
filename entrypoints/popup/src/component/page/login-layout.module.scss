@@ -1,0 +1,46 @@
+.page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding: 34px 22px;
+  border: 1px solid var(--jn-border-subtle);
+  border-radius: var(--jn-radius-panel);
+  background: var(--jn-surface-panel);
+  box-shadow: var(--jn-shadow-panel);
+}
+
+.logo {
+  margin-bottom: 18px;
+  width: 72px;
+  height: 72px;
+}
+
+.title {
+  color: var(--jn-text-primary);
+  font-size: 18px;
+  font-weight: 750;
+}
+
+.desc {
+  margin-top: 6px;
+  max-width: 240px;
+  color: var(--jn-text-secondary);
+  font-size: 12px;
+  line-height: 1.55;
+  text-align: center;
+}
+
+.loginButton {
+  margin-top: 18px;
+  min-width: 150px;
+  height: 34px;
+  font-weight: 650;
+}

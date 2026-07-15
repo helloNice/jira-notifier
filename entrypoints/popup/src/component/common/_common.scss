@@ -1,0 +1,32 @@
+@mixin page {
+  width: 100%;
+  height: 100%;
+}
+
+@mixin scrollbar-common {
+  /* 滚动条整体样式 */
+  &::-webkit-scrollbar {
+    width: 8px; /* 滚动条宽度 */
+  }
+
+  /* 隐藏滚动条箭头 */
+  &::-webkit-scrollbar-button {
+    display: none;
+  }
+
+  /* 滚动条轨道样式 */
+  &::-webkit-scrollbar-track {
+    background-color: transparent; /* 轨道背景颜色 */
+  }
+
+  /* 滚动条滑块样式 */
+  &::-webkit-scrollbar-thumb {
+    border-radius: 4px; /* 滑块圆角 */
+    background-color: rgb(226, 226, 226); /* 滑块背景颜色 */
+  }
+
+  /* 滚动条滑块悬停样式 */
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(200, 200, 200); /* 悬停时滑块背景颜色 */
+  }
+}

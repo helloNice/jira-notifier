@@ -1,0 +1,51 @@
+extName: Jira Notifier
+extDescription: Jira 新增Bug提示工具
+# 内容页面
+noLoginTitle: Jira 未登录
+noLoginContent: 登录后，自动获取最新的Jira内容
+
+# Popup 页面
+back: 返回
+setting: 设置
+noLogin: 未登录
+login: 登录
+connected: 已连接
+taskCount: $1 个任务
+
+# 设置页面
+server: 服务器
+serverRequired: 服务器地址不能为空
+serverPlaceholder: 请输Jira 服务器地址
+openCheck: 开启检测
+interval: 检测间隔
+notifyType: 通知方式
+notifyTypeNone: 不通知
+notifyTypeSystem: 系统通知
+gotoJira: 直接跳转
+reset: 重置记录
+ignoreAll: 全部隐藏
+testNotify: 测试通知
+testNotifyDesc: 验证通知是否正常显示（不通知选项下不可用）
+testNotifyHint: 系统通知已触发，请检查桌面右上角
+testNotifyDisabled: 当前为"不通知"模式，无法测试
+
+# 空状态鼓励语
+emptyStateTitle: 全部搞定！
+emptyStateDesc: 当前没有指派给你的未解决任务
+nextCheckCountdown: $1 秒后检查
+nextCheckRunning: 正在检查...
+nextCheckDisabled: 检测已关闭
+
+# Background
+noticeNewCount:
+  1: 新增1个Bug
+  n: 新增$1个Bug
+noticeReopenCount:
+  1: 重新打开1个Bug
+  n: 重新打开$1个Bug
+noticeDes: 请及时查看！
+noticeBtn: 查看
+noticeAssignTitle:
+  1: 新任务指派
+  n: 新任务指派（$1个）
+noticeAssignMessage: 包括「$2」在内的 $1 个新任务

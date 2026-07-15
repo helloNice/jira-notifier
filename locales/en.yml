@@ -1,0 +1,48 @@
+extName: Jira Notifier
+extDescription: A tool for getting new Bug notifications in Jira
+
+noLoginTitle: Not logged in to Jira
+noLoginContent: After logging in, automatically get the latest content in Jira
+
+back: Back
+setting: Settings
+noLogin: Not logged in
+login: Login
+connected: Connected
+taskCount: $1 tasks
+
+server: Server
+serverRequired: The server address cannot be empty
+serverPlaceholder: Please enter the Jira server address
+openCheck: Open detection
+interval: Detection interval
+notifyType: Notification
+notifyTypeNone: Silent
+notifyTypeSystem: System notification
+gotoJira: Directly jump
+reset: Reset history
+ignoreAll: Hide all
+testNotify: Test notification
+testNotifyDesc: Verify notifications are working (unavailable in Silent mode)
+testNotifyHint: System notification triggered, check the top-right of your desktop
+testNotifyDisabled: Silent mode is on, testing is unavailable
+
+# Empty state
+emptyStateTitle: All done!
+emptyStateDesc: You have no unresolved issues assigned to you
+nextCheckCountdown: Check in $1s
+nextCheckRunning: Checking...
+nextCheckDisabled: Detection off
+
+noticeNewCount:
+  1: 1 new Bug
+  n: $1 new Bugs
+noticeReopenCount:
+  1: 1 Bug has been reopened
+  n: $1 Bugs have been reopened
+noticeDes: Please check!
+noticeBtn: Check
+noticeAssignTitle:
+  1: New task assigned
+  n: New tasks assigned ($1)
+noticeAssignMessage: $1 new tasks including "$2"

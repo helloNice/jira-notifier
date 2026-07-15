@@ -1,0 +1,41 @@
+:root {
+  --jn-surface-app: #eef2f7;
+  --jn-surface-panel: #ffffff;
+  --jn-surface-soft: #f7f9fc;
+  --jn-surface-hover: #f1f6ff;
+  --jn-border-subtle: #dfe6f0;
+  --jn-border-soft: #edf1f7;
+  --jn-text-primary: #172033;
+  --jn-text-secondary: #667085;
+  --jn-text-muted: #98a2b3;
+  --jn-accent: #2563eb;
+  --jn-accent-soft: #eaf1ff;
+  --jn-success: #15803d;
+  --jn-success-soft: #eaf7ee;
+  --jn-warning: #b45309;
+  --jn-radius-panel: 10px;
+  --jn-shadow-panel: 0 10px 30px rgb(15 23 42 / 8%);
+  --jn-shadow-row: 0 6px 18px rgb(37 99 235 / 8%);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  border: none;
+
+  padding: 0;
+  font-family:
+    ui-sans-serif,
+    -apple-system,
+    BlinkMacSystemFont,
+    Segoe UI,
+    Helvetica,
+    "Apple Color Emoji",
+    Arial,
+    sans-serif,
+    "Segoe UI Emoji",
+    Segoe UI Symbol;
+  list-style: none;
+  -webkit-user-select: none;
+  user-select: none;
+}

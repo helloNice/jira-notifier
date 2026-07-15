@@ -1,0 +1,117 @@
+@use "common/common";
+
+.app {
+  display: flex;
+  flex-direction: column;
+  background:
+    linear-gradient(180deg, #f8fbff 0%, var(--jn-surface-app) 100%);
+  width: 360px;
+  height: 480px;
+  color: var(--jn-text-primary);
+}
+
+.body {
+  @include common.scrollbar-common;
+
+  justify-content: center;
+  align-items: center;
+  padding: 0 10px 10px;
+
+  height: 100%;
+  overflow: auto;
+}
+
+.headerBack,
+.header {
+  display: flex;
+  position: sticky;
+  top: 0;
+  align-items: center;
+  z-index: 2;
+  margin: 10px;
+  padding: 8px 10px;
+  min-height: 46px;
+  border: 1px solid rgb(255 255 255 / 70%);
+  border-radius: var(--jn-radius-panel);
+  background: rgb(255 255 255 / 86%);
+  box-shadow: 0 8px 22px rgb(15 23 42 / 8%);
+  backdrop-filter: blur(12px);
+
+  .left {
+    flex: auto;
+    min-width: 0;
+  }
+
+  .right {
+    flex: none;
+  }
+
+  .title {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+    font-size: 13px;
+    font-weight: 650;
+    color: var(--jn-text-primary);
+
+    span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+  .clickable {
+    cursor: pointer;
+  }
+  .icon {
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 8px;
+    color: var(--jn-text-secondary);
+    font-size: 18px;
+    transition:
+      background-color 0.16s ease,
+      color 0.16s ease,
+      transform 0.16s ease;
+
+    &:hover {
+      background: var(--jn-accent-soft);
+      color: var(--jn-accent);
+    }
+
+    &:active {
+      transform: translateY(1px);
+    }
+  }
+  .logo {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+.headerBack {
+  min-height: 40px;
+  margin-bottom: 10px;
+}
+
+.statusLine {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 3px;
+  color: var(--jn-text-muted);
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.connected {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--jn-success);
+}
+
+.taskMeta {
+  color: var(--jn-text-secondary);
+}

@@ -1,0 +1,109 @@
+@use "../common/common";
+
+.page {
+  @include common.page;
+  padding: 2px 0 0;
+}
+
+.section {
+  margin-bottom: 10px;
+  padding: 12px;
+  border: 1px solid var(--jn-border-subtle);
+  border-radius: var(--jn-radius-panel);
+  background: var(--jn-surface-panel);
+  box-shadow: 0 6px 18px rgb(15 23 42 / 5%);
+
+  :global(.ant-form-item-label > label) {
+    color: var(--jn-text-primary);
+    font-size: 12px;
+    font-weight: 650;
+  }
+
+  :global(.ant-input),
+  :global(.ant-input-number),
+  :global(.ant-radio-button-wrapper) {
+    border-color: var(--jn-border-subtle);
+  }
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 9px;
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--jn-border-soft);
+  color: var(--jn-text-primary);
+  font-size: 12px;
+  font-weight: 700;
+
+  :global(.anticon) {
+    color: var(--jn-accent);
+    font-size: 13px;
+  }
+}
+
+.field {
+  margin-top: 8px;
+
+  :global(.ant-form-item) {
+    margin-bottom: 3px;
+  }
+}
+
+.helper {
+  display: block;
+  font-size: 11px;
+  color: var(--jn-text-secondary);
+  line-height: 1.4;
+  margin: 0;
+  padding: 0;
+}
+
+.sliderWrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.intervalInput {
+  width: 64px;
+}
+
+.actionRow {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.actionBtn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.actionDesc {
+  margin-top: 8px;
+  padding: 8px;
+  border: 1px solid var(--jn-border-soft);
+  border-radius: 8px;
+  background: var(--jn-surface-soft);
+  font-size: 11px;
+  color: var(--jn-text-secondary);
+  line-height: 1.5;
+
+  p {
+    margin: 0;
+    margin-bottom: 3px;
+  }
+
+  p:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.label {
+  color: var(--jn-text-primary);
+  font-weight: 650;
+}
