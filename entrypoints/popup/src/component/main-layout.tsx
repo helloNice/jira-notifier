@@ -56,9 +56,9 @@ function Header() {
   const location = useLocation();
 
   useEffect(() => {
-    if (!isLogin) navigate("/login");
+    if (!isLogin && location.pathname !== "/setting") navigate("/login");
     else if (location.pathname === "/login") navigate("/");
-  }, [isLogin]);
+  }, [isLogin, location.pathname, navigate]);
 
   if (location.pathname === "/setting") {
     return (

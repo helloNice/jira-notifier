@@ -1,8 +1,22 @@
+import { useSettingStore } from "@/src/store/settingStore";
 import { jiraHelper } from "@/src/utils/common/jiraClient";
 import { Button } from "antd";
+import { useNavigate } from "react-router-dom";
 import cssStyles from "./login-layout.module.scss";
 
 function LoginLayout() {
+  const navigate = useNavigate();
+  const serverURL = useSettingStore((state) => state.serverURL);
+
+  const onLogin = () => {
+    if (!serverURL.trim()) {
+      navigate("/setting?setup=jira");
+      return;
+    }
+
+    jiraHelper.gotoLogin();
+  };
+
   return (
     <div className={cssStyles.page}>
       <div className={cssStyles.panel}>
@@ -13,7 +27,7 @@ function LoginLayout() {
         <Button
           className={cssStyles.loginButton}
           type="primary"
-          onClick={() => jiraHelper.gotoLogin()}
+          onClick={onLogin}
         >
           {i18n.t("login")}
         </Button>

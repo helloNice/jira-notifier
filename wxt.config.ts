@@ -9,12 +9,6 @@ export default defineConfig({
     description: "__MSG_extDescription__",
 
     permissions: ["notifications", "storage", "alarms"],
-    host_permissions: ["<all_urls>"],
-    web_accessible_resources: [
-      {
-        resources: ["icon.svg"],
-        matches: ["<all_urls>"],
-      },
-    ],
+    optional_host_permissions: ["http://*/*", "https://*/*"],
   },
 });

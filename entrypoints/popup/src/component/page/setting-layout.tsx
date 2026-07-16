@@ -7,6 +7,11 @@ import {
 } from "@/src/store/settingStore";
 import { useJiraStore } from "@/src/store/jiraStore";
 import {
+  getHostPermissionOrigin,
+  normalizeJiraServerURL,
+  requestHostPermission,
+} from "@/src/utils/common/hostPermission";
+import {
   sendTestNotification,
   validateJiraJql,
 } from "@/src/utils/common/jiraClient";
@@ -34,6 +39,7 @@ import {
   Switch,
 } from "antd";
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import cssStyle from "./setting-layout.module.scss";
 
 const MIN_INTERVAL_SECONDS = 60;
@@ -83,8 +89,11 @@ function SettingLayout() {
   const clearIgnore = useJiraStore((state) => state.clearIgnore);
   const hideAll = useJiraStore((state) => state.ignoreAll);
   const { message } = App.useApp();
+  const [searchParams] = useSearchParams();
+  const shouldShowJiraSetupHint = searchParams.get("setup") === "jira";
 
   const [form] = Form.useForm<ISettingData>();
+  const [isSavingJiraHost, setIsSavingJiraHost] = useState(false);
   const [jqlCheckError, setJqlCheckError] = useState<string | null>(null);
   const [isCheckingJql, setIsCheckingJql] = useState(false);
   const [sliderInterval, setSliderInterval] = useState(
@@ -134,6 +143,31 @@ function SettingLayout() {
     updateSettings({ interval: nextInterval });
   };
 
+  const saveJiraServerURL = async () => {
+    setIsSavingJiraHost(true);
+
+    try {
+      const { serverURL } = await form.validateFields(["serverURL"]);
+      const nextServerURL = normalizeJiraServerURL(String(serverURL ?? ""));
+      const permissionOrigin = getHostPermissionOrigin(nextServerURL);
+      const allowed = await requestHostPermission(nextServerURL);
+
+      if (!allowed) {
+        message.error("未获得 Jira 地址访问权限，服务器地址未保存");
+        return;
+      }
+
+      updateSettings({ serverURL: nextServerURL });
+      form.setFieldValue("serverURL", nextServerURL);
+      message.success(`已授权并保存 ${permissionOrigin}`);
+      window.setTimeout(() => browser.runtime.reload(), 800);
+    } catch (error) {
+      message.error(getErrorMessage(error));
+    } finally {
+      setIsSavingJiraHost(false);
+    }
+  };
+
   const checkJiraJql = async () => {
     const jiraJql = String(form.getFieldValue("jiraJql") ?? "").trim();
 
@@ -159,11 +193,14 @@ function SettingLayout() {
         layout="vertical"
         initialValues={normalizedSettingData}
         onValuesChange={(changedValues: Partial<ISettingData>) => {
-          const { jiraJql, ...safeChangedValues } = changedValues;
+          const safeChangedValues = { ...changedValues };
+          delete safeChangedValues.jiraJql;
+          delete safeChangedValues.serverURL;
+
           if (Object.keys(safeChangedValues).length > 0) {
             updateSettings(safeChangedValues);
           }
-          if (jiraJql !== undefined) setJqlCheckError(null);
+          if (changedValues.jiraJql !== undefined) setJqlCheckError(null);
         }}
       >
 
@@ -173,11 +210,25 @@ function SettingLayout() {
             <ApiOutlined />
             <span>服务器连接</span>
           </div>
+          {shouldShowJiraSetupHint && (
+            <Alert
+              showIcon
+              type="info"
+              message="请先配置 Jira 地址"
+              description="输入 Jira 首页或任意 Jira 页面链接，点击“授权并保存”后再登录。保存时会自动裁切为主机名和端口。"
+              className={cssStyle.setupAlert}
+            />
+          )}
           <Form.Item
             name="serverURL"
             rules={[{ required: true, message: i18n.t("serverRequired") }]}
           >
-            <Input placeholder={i18n.t("serverPlaceholder")} />
+            <Input.Search
+              enterButton="授权并保存"
+              loading={isSavingJiraHost}
+              placeholder={i18n.t("serverPlaceholder")}
+              onSearch={saveJiraServerURL}
+            />
           </Form.Item>
           <p className={cssStyle.helper}>
             指向你的 Jira 服务器地址，扩展通过此地址获取任务数据
@@ -296,26 +347,22 @@ function SettingLayout() {
                         className={cssStyle.jqlAlert}
                       />
                     )}
-                    <Form.Item
-                      name="jiraJql"
-                      label={
-                        <div className={cssStyle.jqlLabel}>
-                          <span>Jira JQL</span>
-                          <Button
-                            size="small"
-                            type="primary"
-                            loading={isCheckingJql}
-                            onClick={checkJiraJql}
-                          >
-                            检测
-                          </Button>
-                        </div>
-                      }
-                    >
-                      <Input.TextArea
-                        autoSize={{ minRows: 4, maxRows: 8 }}
-                        placeholder={DEFAULT_JIRA_JQL}
-                      />
+                    <Form.Item label="Jira JQL">
+                      <div className={cssStyle.jqlControlRow}>
+                        <Form.Item name="jiraJql" noStyle>
+                          <Input.TextArea
+                            autoSize={{ minRows: 4, maxRows: 8 }}
+                            placeholder={DEFAULT_JIRA_JQL}
+                          />
+                        </Form.Item>
+                        <Button
+                          type="primary"
+                          loading={isCheckingJql}
+                          onClick={checkJiraJql}
+                        >
+                          检测
+                        </Button>
+                      </div>
                     </Form.Item>
                     <p className={cssStyle.helper}>
                       自定义后台轮询使用的 Jira 查询语句。留空时使用默认查询条件

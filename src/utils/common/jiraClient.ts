@@ -5,6 +5,7 @@ import {
   NotificationType,
   useSettingStore,
 } from "@/src/store/settingStore";
+import { hasHostPermission, normalizeJiraServerURL } from "./hostPermission";
 import { orderItemsByKeys } from "./projectOrder";
 import { Version2Client, Version2Models } from "jira.js";
 
@@ -44,7 +45,10 @@ let cachedJiraClient: Version2Client | null = null;
 let cachedJiraHost = "";
 
 function normalizeServerURL(serverURL?: string) {
-  return (serverURL ?? "").trim().replace(/\/+$/, "");
+  const trimmedServerURL = (serverURL ?? "").trim();
+  if (!trimmedServerURL) return "";
+
+  return normalizeJiraServerURL(trimmedServerURL);
 }
 
 function getServerURL() {
@@ -86,6 +90,16 @@ function getJiraClient() {
   return cachedJiraClient;
 }
 
+async function ensureJiraHostPermission() {
+  const serverURL = getServerURL();
+  if (!serverURL) return;
+
+  const allowed = await hasHostPermission(serverURL);
+  if (!allowed) {
+    throw new Error("未授权访问当前 Jira 地址，请在设置页保存并授权 Jira 地址");
+  }
+}
+
 // #endregion
 
 // #region 初始化JiraHelper
@@ -117,6 +131,7 @@ class JiraHelper {
   }
 
   public async refreshUserInfo() {
+    await ensureJiraHostPermission();
     const jiraClient = getJiraClient();
     if (!jiraClient) {
       useJiraStore.setState({
@@ -155,6 +170,7 @@ class JiraHelper {
       shouldNotify,
     });
 
+    await ensureJiraHostPermission();
     const jiraClient = getJiraClient();
     if (!jiraClient) {
       useJiraStore.setState({
@@ -258,6 +274,7 @@ class JiraHelper {
 
   public async setIssuesStatus(issueKey: string, status: JIRAStatus) {
     try {
+      await ensureJiraHostPermission();
       const jiraClient = getJiraClient();
       if (!jiraClient) throw new Error("Jira server URL is not configured");
 
@@ -580,6 +597,7 @@ export function sendTestNotification(): boolean {
  * 轻量校验 JQL 是否能被当前 Jira 接受。只请求 1 条结果，不更新任务列表。
  */
 export async function validateJiraJql(jql: string): Promise<void> {
+  await ensureJiraHostPermission();
   const jiraClient = getJiraClient();
   if (!jiraClient) throw new Error("Jira server URL is not configured");
 
