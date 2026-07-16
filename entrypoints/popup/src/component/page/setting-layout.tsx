@@ -1,26 +1,44 @@
 import {
+  DEFAULT_JIRA_JQL,
   ISettingData,
   NEXT_CHECK_AT_STORAGE_KEY,
   NotificationType,
   useSettingStore,
 } from "@/src/store/settingStore";
 import { useJiraStore } from "@/src/store/jiraStore";
-import { sendTestNotification } from "@/src/utils/common/jiraClient";
+import {
+  sendTestNotification,
+  validateJiraJql,
+} from "@/src/utils/common/jiraClient";
 import {
   ApiOutlined,
   BellOutlined,
   ControlOutlined,
   DatabaseOutlined,
   EyeInvisibleOutlined,
+  GithubOutlined,
+  SettingOutlined,
   UndoOutlined,
 } from "@ant-design/icons";
 import { i18n } from "#imports";
-import { App, Button, Form, Input, InputNumber, Radio, Slider, Switch } from "antd";
+import {
+  Alert,
+  App,
+  Button,
+  Collapse,
+  Form,
+  Input,
+  InputNumber,
+  Radio,
+  Slider,
+  Switch,
+} from "antd";
 import { useEffect, useState } from "react";
 import cssStyle from "./setting-layout.module.scss";
 
 const MIN_INTERVAL_SECONDS = 60;
 const MAX_INTERVAL_SECONDS = 600;
+const GITHUB_URL = "https://github.com/helloNice/jira-notifier";
 
 function normalizeInterval(value: number | null | undefined) {
   const interval = Number.isFinite(value) ? Math.round(value as number) : 180;
@@ -30,11 +48,33 @@ function normalizeInterval(value: number | null | undefined) {
   );
 }
 
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) return error.message;
+
+  if (typeof error === "object" && error !== null) {
+    const maybeError = error as {
+      errorMessages?: string[];
+      message?: string;
+      statusText?: string;
+    };
+
+    if (maybeError.errorMessages?.length) {
+      return maybeError.errorMessages.join("；");
+    }
+
+    if (maybeError.message) return maybeError.message;
+    if (maybeError.statusText) return maybeError.statusText;
+  }
+
+  return String(error);
+}
+
 function SettingLayout() {
   const settingData = useSettingStore((state) => state);
   const normalizedSettingData = {
     ...settingData,
     interval: normalizeInterval(settingData.interval),
+    jiraJql: settingData.jiraJql || DEFAULT_JIRA_JQL,
     notifyType:
       settingData.notifyType === NotificationType.None
         ? NotificationType.None
@@ -45,6 +85,8 @@ function SettingLayout() {
   const { message } = App.useApp();
 
   const [form] = Form.useForm<ISettingData>();
+  const [jqlCheckError, setJqlCheckError] = useState<string | null>(null);
+  const [isCheckingJql, setIsCheckingJql] = useState(false);
   const [sliderInterval, setSliderInterval] = useState(
     normalizedSettingData.interval,
   );
@@ -57,6 +99,7 @@ function SettingLayout() {
     normalizedSettingData.interval,
     normalizedSettingData.isAutoFocused,
     normalizedSettingData.isOpen,
+    normalizedSettingData.jiraJql,
     normalizedSettingData.notifyType,
     normalizedSettingData.serverURL,
   ]);
@@ -91,6 +134,24 @@ function SettingLayout() {
     updateSettings({ interval: nextInterval });
   };
 
+  const checkJiraJql = async () => {
+    const jiraJql = String(form.getFieldValue("jiraJql") ?? "").trim();
+
+    setIsCheckingJql(true);
+    setJqlCheckError(null);
+
+    try {
+      await validateJiraJql(jiraJql);
+      updateSettings({ jiraJql: jiraJql || DEFAULT_JIRA_JQL });
+      clearIgnore();
+      message.success("JQL 检测通过，已重置记录并重新拉取任务");
+    } catch (error) {
+      setJqlCheckError(getErrorMessage(error));
+    } finally {
+      setIsCheckingJql(false);
+    }
+  };
+
   return (
     <div className={cssStyle.page}>
       <Form
@@ -98,7 +159,11 @@ function SettingLayout() {
         layout="vertical"
         initialValues={normalizedSettingData}
         onValuesChange={(changedValues: Partial<ISettingData>) => {
-          updateSettings(changedValues);
+          const { jiraJql, ...safeChangedValues } = changedValues;
+          if (Object.keys(safeChangedValues).length > 0) {
+            updateSettings(safeChangedValues);
+          }
+          if (jiraJql !== undefined) setJqlCheckError(null);
         }}
       >
 
@@ -206,6 +271,62 @@ function SettingLayout() {
           </div>
         </div>
 
+        {/* ── 高级选项 ── */}
+        <div className={cssStyle.section}>
+          <Collapse
+            bordered={false}
+            className={cssStyle.advancedCollapse}
+            items={[
+              {
+                key: "advanced",
+                label: (
+                  <div className={cssStyle.sectionTitle}>
+                    <SettingOutlined />
+                    <span>高级选项</span>
+                  </div>
+                ),
+                children: (
+                  <div className={cssStyle.field}>
+                    {jqlCheckError && (
+                      <Alert
+                        showIcon
+                        type="error"
+                        message="JQL 检测失败"
+                        description={jqlCheckError}
+                        className={cssStyle.jqlAlert}
+                      />
+                    )}
+                    <Form.Item
+                      name="jiraJql"
+                      label={
+                        <div className={cssStyle.jqlLabel}>
+                          <span>Jira JQL</span>
+                          <Button
+                            size="small"
+                            type="primary"
+                            loading={isCheckingJql}
+                            onClick={checkJiraJql}
+                          >
+                            检测
+                          </Button>
+                        </div>
+                      }
+                    >
+                      <Input.TextArea
+                        autoSize={{ minRows: 4, maxRows: 8 }}
+                        placeholder={DEFAULT_JIRA_JQL}
+                      />
+                    </Form.Item>
+                    <p className={cssStyle.helper}>
+                      自定义后台轮询使用的 Jira 查询语句。留空时使用默认查询条件
+                    </p>
+                  </div>
+                ),
+              },
+            ]}
+          />
+        </div>
+
       </Form>
 
       {/* ── 通知测试 ── */}
@@ -267,6 +388,25 @@ function SettingLayout() {
             清空本地隐藏和已通知记录，重新拉取任务，用于数据异常修复
           </p>
         </div>
+      </div>
+
+      {/* ── 项目链接 ── */}
+      <div className={cssStyle.section}>
+        <div className={cssStyle.sectionTitle}>
+          <GithubOutlined />
+          <span>项目链接</span>
+        </div>
+        <Button
+          type="default"
+          icon={<GithubOutlined />}
+          onClick={() => browser.tabs.create({ url: GITHUB_URL })}
+          block
+        >
+          GitHub 仓库
+        </Button>
+        <p className={cssStyle.helper} style={{ marginTop: 6 }}>
+          查看源码、提交 Issue 或关注更新
+        </p>
       </div>
     </div>
   );

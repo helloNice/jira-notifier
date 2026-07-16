@@ -5,6 +5,8 @@ import { createJSONStorage, persist } from "zustand/middleware";
 const STORAGE_KEY = "user-setting";
 
 export const NEXT_CHECK_AT_STORAGE_KEY = "jira-next-check-at";
+export const DEFAULT_JIRA_JQL =
+  "resolution = Unresolved AND assignee in (currentUser()) ORDER BY updated DESC";
 
 export enum NotificationType {
   None = 0,
@@ -17,6 +19,7 @@ export interface ISettingData {
   notifyType: NotificationType;
   serverURL: string;
   interval: number;
+  jiraJql: string;
 }
 
 export const useSettingStore = create<ISettingData>()(
@@ -27,6 +30,7 @@ export const useSettingStore = create<ISettingData>()(
       notifyType: NotificationType.System,
       serverURL: "",
       interval: 180,
+      jiraJql: DEFAULT_JIRA_JQL,
     }),
     {
       name: STORAGE_KEY,

@@ -70,6 +70,42 @@
   width: 64px;
 }
 
+.advancedCollapse {
+  background: transparent;
+
+  :global(.ant-collapse-header) {
+    align-items: center !important;
+    padding: 0 !important;
+  }
+
+  :global(.ant-collapse-header-text) {
+    min-width: 0;
+  }
+
+  :global(.ant-collapse-content-box) {
+    padding: 8px 0 0 !important;
+  }
+
+  .sectionTitle {
+    flex: 1;
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: 0;
+  }
+}
+
+.jqlAlert {
+  margin-bottom: 8px;
+}
+
+.jqlLabel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+}
+
 .actionRow {
   display: flex;
   gap: 8px;

@@ -1,6 +1,10 @@
 import { i18n } from "#imports";
 import { useJiraStore } from "@/src/store/jiraStore";
-import { NotificationType, useSettingStore } from "@/src/store/settingStore";
+import {
+  DEFAULT_JIRA_JQL,
+  NotificationType,
+  useSettingStore,
+} from "@/src/store/settingStore";
 import { orderItemsByKeys } from "./projectOrder";
 import { Version2Client, Version2Models } from "jira.js";
 
@@ -171,10 +175,12 @@ class JiraHelper {
     const issuesList: Version2Models.Issue[] = [];
     const maxResults = 100;
     let startAt = 0;
+    const jiraJql =
+      useSettingStore.getState().jiraJql?.trim() || DEFAULT_JIRA_JQL;
 
     while (true) {
       const respondList = await jiraClient.issueSearch.searchForIssuesUsingJql({
-        jql: "resolution = Unresolved AND assignee in (currentUser()) ORDER BY updated DESC",
+        jql: jiraJql,
         fields: [
           "summary",
           "status",
@@ -568,6 +574,21 @@ export function sendTestNotification(): boolean {
     "如果你能看到这条消息，通知功能正常工作。",
   );
   return true;
+}
+
+/**
+ * 轻量校验 JQL 是否能被当前 Jira 接受。只请求 1 条结果，不更新任务列表。
+ */
+export async function validateJiraJql(jql: string): Promise<void> {
+  const jiraClient = getJiraClient();
+  if (!jiraClient) throw new Error("Jira server URL is not configured");
+
+  await jiraClient.issueSearch.searchForIssuesUsingJql({
+    jql: jql.trim() || DEFAULT_JIRA_JQL,
+    fields: ["summary"],
+    maxResults: 1,
+    startAt: 0,
+  });
 }
 
 // #region 通知点击处理
