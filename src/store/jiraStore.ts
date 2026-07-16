@@ -3,6 +3,7 @@ import { create } from "zustand";
 import { ChromeLocalStorage } from "zustand-chrome-storage";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { IProjectData, jiraHelper } from "../utils/common/jiraClient";
+import { orderItemsByKeys } from "../utils/common/projectOrder";
 
 const STORAGE_KEY = "jira-data";
 interface IJiraData {
@@ -11,6 +12,7 @@ interface IJiraData {
   isOffLine: boolean;
   userInfo: Version2Models.User | null;
   projectInfoList: IProjectData[];
+  projectOrderKeys: string[];
   ignoreList: string[];
   noticedList: string[];
   hasIssueSnapshot: boolean;
@@ -29,6 +31,7 @@ interface IJiraActions {
   addIgnore: (issue: Version2Models.Issue) => void;
   ignoreAll: () => void;
   clearIgnore: () => void;
+  setProjectOrderKeys: (projectOrderKeys: string[]) => void;
 }
 
 export const useJiraStore = create<IJiraData & IJiraActions>()(
@@ -38,6 +41,7 @@ export const useJiraStore = create<IJiraData & IJiraActions>()(
       isLogin: false,
       isOffLine: false,
       projectInfoList: [],
+      projectOrderKeys: [],
       ignoreList: [],
       noticedList: [],
       hasIssueSnapshot: false,
@@ -80,6 +84,13 @@ export const useJiraStore = create<IJiraData & IJiraActions>()(
           shouldNotify: false,
           resetNotificationBaseline: true,
         });
+      },
+      setProjectOrderKeys: (projectOrderKeys: string[]) => {
+        const projectInfoList = orderItemsByKeys(
+          get().projectInfoList,
+          projectOrderKeys,
+        );
+        set({ projectInfoList, projectOrderKeys });
       },
       ignoreAll: () => {
         const allIssues = get().projectInfoList.flatMap((item) => item.issues);

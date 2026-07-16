@@ -4,11 +4,30 @@ import {
   useSettingStore,
 } from "@/src/store/settingStore";
 import { JIRAStatus } from "@/src/utils/common/jiraClient";
+import { mergeOrderKeys } from "@/src/utils/common/projectOrder";
 import { Collapse, List, Tag } from "antd";
-import { CheckCircleOutlined, ClockCircleOutlined } from "@ant-design/icons";
-import { useEffect, useState } from "react";
+import {
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  HolderOutlined,
+} from "@ant-design/icons";
+import { type DragEvent, useEffect, useState } from "react";
 import { Version2Models } from "jira.js";
 import cssStyles from "./newbug-layout.module.scss";
+
+function moveProjectKey(
+  projectKeys: string[],
+  sourceKey: string,
+  targetKey: string,
+  insertAfter: boolean,
+) {
+  const nextKeys = projectKeys.filter((key) => key !== sourceKey);
+  const targetIndex = nextKeys.indexOf(targetKey);
+  if (targetIndex === -1) return projectKeys;
+
+  nextKeys.splice(targetIndex + (insertAfter ? 1 : 0), 0, sourceKey);
+  return nextKeys;
+}
 
 const BugItem = (props: {
   index: number;
@@ -54,9 +73,20 @@ const BugItem = (props: {
 
 function NewBugLayout() {
   const projectInfoList = useJiraStore((state) => state.projectInfoList);
+  const projectOrderKeys = useJiraStore((state) => state.projectOrderKeys);
+  const setProjectOrderKeys = useJiraStore(
+    (state) => state.setProjectOrderKeys,
+  );
   const isOpen = useSettingStore((state) => state.isOpen);
   const [nextCheckAt, setNextCheckAt] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
+  const [draggingProjectKey, setDraggingProjectKey] = useState<string | null>(
+    null,
+  );
+  const [dragOverProject, setDragOverProject] = useState<{
+    insertAfter: boolean;
+    key: string;
+  } | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -107,6 +137,103 @@ function NewBugLayout() {
         ? i18n.t("nextCheckRunning")
         : i18n.t("nextCheckCountdown", [remainSeconds]);
 
+  const projectKeys = projectInfoList.map((project) => project.key);
+  const mergedProjectKeys = mergeOrderKeys(projectOrderKeys, projectKeys);
+  const renderProjectLabel = (project: (typeof projectInfoList)[number]) => {
+    const isDragging = draggingProjectKey === project.key;
+    const isDragOverBefore =
+      dragOverProject?.key === project.key && !dragOverProject.insertAfter;
+    const isDragOverAfter =
+      dragOverProject?.key === project.key && dragOverProject.insertAfter;
+
+    const onDragOver = (event: DragEvent<HTMLDivElement>) => {
+      if (!draggingProjectKey || draggingProjectKey === project.key) {
+        setDragOverProject(null);
+        return;
+      }
+
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "move";
+
+      const rect = event.currentTarget.getBoundingClientRect();
+      const insertAfter = event.clientY > rect.top + rect.height / 2;
+      setDragOverProject((prevState) =>
+        prevState?.key === project.key &&
+        prevState.insertAfter === insertAfter
+          ? prevState
+          : { insertAfter, key: project.key },
+      );
+    };
+
+    const onDragLeave = (event: DragEvent<HTMLDivElement>) => {
+      const nextTarget = event.relatedTarget;
+      if (
+        nextTarget instanceof Node &&
+        event.currentTarget.contains(nextTarget)
+      ) {
+        return;
+      }
+
+      setDragOverProject(null);
+    };
+
+    const onDrop = (event: DragEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      setDragOverProject(null);
+
+      const sourceKey =
+        event.dataTransfer.getData("text/plain") || draggingProjectKey;
+      if (!sourceKey || sourceKey === project.key) {
+        setDraggingProjectKey(null);
+        return;
+      }
+
+      const rect = event.currentTarget.getBoundingClientRect();
+      const insertAfter = event.clientY > rect.top + rect.height / 2;
+      setProjectOrderKeys(
+        moveProjectKey(mergedProjectKeys, sourceKey, project.key, insertAfter),
+      );
+      setDraggingProjectKey(null);
+    };
+
+    return (
+      <div
+        className={`${cssStyles.projectHeader} ${
+          isDragging ? cssStyles.isDraggingProject : ""
+        } ${isDragOverBefore ? cssStyles.isDragOverBefore : ""} ${
+          isDragOverAfter ? cssStyles.isDragOverAfter : ""
+        }`}
+        onDragLeave={onDragLeave}
+        onDragOver={onDragOver}
+        onDrop={onDrop}
+      >
+        <span
+          aria-label="拖动项目排序"
+          className={cssStyles.projectDragHandle}
+          draggable
+          role="button"
+          title="拖动项目排序"
+          onClick={(event) => event.stopPropagation()}
+          onDragEnd={() => {
+            setDraggingProjectKey(null);
+            setDragOverProject(null);
+          }}
+          onDragStart={(event) => {
+            event.stopPropagation();
+            event.dataTransfer.effectAllowed = "move";
+            event.dataTransfer.setData("text/plain", project.key);
+            setDraggingProjectKey(project.key);
+          }}
+          onMouseDown={(event) => event.stopPropagation()}
+        >
+          <HolderOutlined />
+        </span>
+        <span className={cssStyles.projectName}>{project.name}</span>
+        <span className={cssStyles.projectCount}>（{project.count}）</span>
+      </div>
+    );
+  };
+
   return (
     <div className={cssStyles.page}>
       <div className={cssStyles.toolbar}>
@@ -130,7 +257,7 @@ function NewBugLayout() {
           defaultActiveKey={[projectInfoList[0]?.key]}
           items={projectInfoList.map((project) => ({
             key: project.key,
-            label: `${project.name}（${project.count}）`,
+            label: renderProjectLabel(project),
             children: (
               <List
                 bordered={false}

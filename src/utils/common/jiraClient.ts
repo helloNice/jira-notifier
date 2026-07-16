@@ -1,6 +1,7 @@
 import { i18n } from "#imports";
 import { useJiraStore } from "@/src/store/jiraStore";
 import { NotificationType, useSettingStore } from "@/src/store/settingStore";
+import { orderItemsByKeys } from "./projectOrder";
 import { Version2Client, Version2Models } from "jira.js";
 
 const LOG_PREFIX = "[jira-notifier][debug]";
@@ -280,6 +281,7 @@ class JiraHelper {
       ignoreList: prevIgnoreList,
       lastCheckedIssueKeys: prevLastCheckedIssueKeys,
       noticedList: prevNoticeList,
+      projectOrderKeys,
       projectInfoList: prevProjectInfoList,
     } = useJiraStore.getState();
     const needNoticeList = new Array<Version2Models.Issue>();
@@ -316,6 +318,7 @@ class JiraHelper {
     });
 
     projectInfoList = projectInfoList.filter((project) => project.count > 0);
+    projectInfoList = orderItemsByKeys(projectInfoList, projectOrderKeys);
 
     const count = projectInfoList.reduce((acc, cur) => acc + cur.count, 0);
 

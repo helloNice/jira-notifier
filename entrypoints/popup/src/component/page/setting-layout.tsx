@@ -1,5 +1,6 @@
 import {
   ISettingData,
+  NEXT_CHECK_AT_STORAGE_KEY,
   NotificationType,
   useSettingStore,
 } from "@/src/store/settingStore";
@@ -15,12 +16,25 @@ import {
 } from "@ant-design/icons";
 import { i18n } from "#imports";
 import { App, Button, Form, Input, InputNumber, Radio, Slider, Switch } from "antd";
+import { useEffect, useState } from "react";
 import cssStyle from "./setting-layout.module.scss";
+
+const MIN_INTERVAL_SECONDS = 60;
+const MAX_INTERVAL_SECONDS = 600;
+
+function normalizeInterval(value: number | null | undefined) {
+  const interval = Number.isFinite(value) ? Math.round(value as number) : 180;
+  return Math.min(
+    MAX_INTERVAL_SECONDS,
+    Math.max(MIN_INTERVAL_SECONDS, interval),
+  );
+}
 
 function SettingLayout() {
   const settingData = useSettingStore((state) => state);
   const normalizedSettingData = {
     ...settingData,
+    interval: normalizeInterval(settingData.interval),
     notifyType:
       settingData.notifyType === NotificationType.None
         ? NotificationType.None
@@ -31,25 +45,62 @@ function SettingLayout() {
   const { message } = App.useApp();
 
   const [form] = Form.useForm<ISettingData>();
-  const isOpen = Form.useWatch("isOpen", form);
-  const serverURL = Form.useWatch("serverURL", form);
-  const interval = Form.useWatch("interval", form);
-  const isAutoFocused = Form.useWatch("isAutoFocused", form);
-  const notifyType = Form.useWatch("notifyType", form);
+  const [sliderInterval, setSliderInterval] = useState(
+    normalizedSettingData.interval,
+  );
 
   useEffect(() => {
-    useSettingStore.setState({
-      isOpen,
-      serverURL,
-      interval,
-      isAutoFocused,
-      notifyType,
+    form.setFieldsValue(normalizedSettingData);
+    setSliderInterval(normalizedSettingData.interval);
+  }, [
+    form,
+    normalizedSettingData.interval,
+    normalizedSettingData.isAutoFocused,
+    normalizedSettingData.isOpen,
+    normalizedSettingData.notifyType,
+    normalizedSettingData.serverURL,
+  ]);
+
+  const syncNextCheckAt = (nextSettingData: ISettingData) => {
+    if (!nextSettingData.isOpen) {
+      void browser.storage.local.remove(NEXT_CHECK_AT_STORAGE_KEY);
+      return;
+    }
+
+    void browser.storage.local.set({
+      [NEXT_CHECK_AT_STORAGE_KEY]:
+        Date.now() + nextSettingData.interval * 1000,
     });
-  }, [isOpen, serverURL, interval, isAutoFocused, notifyType]);
+  };
+
+  const updateSettings = (patch: Partial<ISettingData>) => {
+    useSettingStore.setState(patch);
+
+    if ("interval" in patch || "isOpen" in patch) {
+      syncNextCheckAt({
+        ...useSettingStore.getState(),
+        ...patch,
+      });
+    }
+  };
+
+  const updateInterval = (value: number | null) => {
+    const nextInterval = normalizeInterval(value);
+    form.setFieldValue("interval", nextInterval);
+    setSliderInterval(nextInterval);
+    updateSettings({ interval: nextInterval });
+  };
 
   return (
     <div className={cssStyle.page}>
-      <Form form={form} layout="vertical" initialValues={normalizedSettingData}>
+      <Form
+        form={form}
+        layout="vertical"
+        initialValues={normalizedSettingData}
+        onValuesChange={(changedValues: Partial<ISettingData>) => {
+          updateSettings(changedValues);
+        }}
+      >
 
         {/* ── 服务器连接 ── */}
         <div className={cssStyle.section}>
@@ -89,24 +140,27 @@ function SettingLayout() {
           </div>
 
           <div className={cssStyle.field}>
-            <Form.Item name="interval" label={i18n.t("interval")}>
+            <Form.Item label={i18n.t("interval")}>
               <div className={cssStyle.sliderWrapper}>
                 <Slider
                   style={{ flex: 1 }}
                   step={1}
-                  min={60}
-                  max={600}
+                  min={MIN_INTERVAL_SECONDS}
+                  max={MAX_INTERVAL_SECONDS}
+                  value={sliderInterval}
+                  onChange={setSliderInterval}
+                  onChangeComplete={updateInterval}
                   tooltip={{ open: false }}
                 />
-                <Form.Item name="interval" noStyle>
-                  <InputNumber
-                    min={60}
-                    max={600}
-                    suffix="s"
-                    controls={false}
-                    className={cssStyle.intervalInput}
-                  />
-                </Form.Item>
+                <InputNumber
+                  min={MIN_INTERVAL_SECONDS}
+                  max={MAX_INTERVAL_SECONDS}
+                  value={normalizedSettingData.interval}
+                  suffix="s"
+                  controls={false}
+                  className={cssStyle.intervalInput}
+                  onChange={updateInterval}
+                />
               </div>
             </Form.Item>
             <p className={cssStyle.helper}>

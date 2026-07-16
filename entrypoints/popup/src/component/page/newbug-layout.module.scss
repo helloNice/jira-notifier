@@ -58,6 +58,82 @@
   white-space: nowrap;
 }
 
+.projectHeader {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  width: 100%;
+  border-radius: 6px;
+  transition: background-color 0.12s ease;
+}
+
+.isDragOverBefore,
+.isDragOverAfter {
+  background: var(--jn-accent-soft);
+}
+
+.isDragOverBefore::before,
+.isDragOverAfter::after {
+  position: absolute;
+  right: 0;
+  left: 0;
+  z-index: 2;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--jn-accent);
+  box-shadow: 0 0 0 3px var(--jn-accent-soft);
+  content: "";
+}
+
+.isDragOverBefore::before {
+  top: -8px;
+}
+
+.isDragOverAfter::after {
+  bottom: -8px;
+}
+
+.projectDragHandle {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  margin-right: 6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  color: var(--jn-text-secondary);
+  cursor: grab;
+  transition:
+    background-color 0.16s ease,
+    color 0.16s ease;
+
+  &:hover {
+    background: var(--jn-surface-hover);
+    color: var(--jn-accent);
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.projectName {
+  overflow: hidden;
+  min-width: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.projectCount {
+  flex: none;
+}
+
+.isDraggingProject {
+  opacity: 0.55;
+}
+
 .bugItem {
   position: relative;
   cursor: pointer;
