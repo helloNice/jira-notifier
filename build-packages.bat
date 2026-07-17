@@ -17,21 +17,22 @@ if defined INPUT_VERSION (
   if errorlevel 1 exit /b 1
 )
 
-echo [1/4] Type checking...
+echo [1/3] Type checking...
 call npm run compile
 if errorlevel 1 exit /b 1
 
-echo [2/4] Packaging Chrome...
+echo [2/3] Packaging Chrome...
 call npm run zip -- -b chrome
 if errorlevel 1 exit /b 1
 
-echo [3/4] Packaging Edge...
+echo [3/3] Packaging Edge...
 call npm run zip -- -b edge
 if errorlevel 1 exit /b 1
 
-echo [4/4] Packaging Firefox...
-call npm run zip -- -b firefox
-if errorlevel 1 exit /b 1
+rem Firefox packaging is disabled because the current Firefox build did not pass validation.
+rem echo [4/4] Packaging Firefox...
+rem call npm run zip -- -b firefox
+rem if errorlevel 1 exit /b 1
 
 echo Done. Check .output for the zip packages.
 exit /b 0
