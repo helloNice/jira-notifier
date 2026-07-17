@@ -1,13 +1,14 @@
+import { i18n } from "#imports";
+import { useJiraStore } from "@/src/store/jiraStore";
 import {
-  DEFAULT_JIRA_JQL,
   DEFAULT_DUE_REMINDER_OFFSETS_MINUTES,
+  DEFAULT_JIRA_JQL,
   ISettingData,
   NEXT_CHECK_AT_STORAGE_KEY,
   NotificationType,
   persistSettingPatch,
   useSettingStore,
 } from "@/src/store/settingStore";
-import { useJiraStore } from "@/src/store/jiraStore";
 import {
   getHostPermissionOrigin,
   normalizeJiraServerURL,
@@ -21,17 +22,18 @@ import {
 import {
   ApiOutlined,
   BellOutlined,
+  CalendarOutlined,
   CheckCircleOutlined,
+  ClockCircleOutlined,
   ControlOutlined,
   DatabaseOutlined,
+  ExperimentOutlined,
   EyeInvisibleOutlined,
   GithubOutlined,
-  ExperimentOutlined,
   LinkOutlined,
   SettingOutlined,
   UndoOutlined,
 } from "@ant-design/icons";
-import { i18n } from "#imports";
 import {
   Alert,
   App,
@@ -157,8 +159,7 @@ function SettingLayout() {
     }
 
     void browser.storage.local.set({
-      [NEXT_CHECK_AT_STORAGE_KEY]:
-        Date.now() + nextSettingData.interval * 1000,
+      [NEXT_CHECK_AT_STORAGE_KEY]: Date.now() + nextSettingData.interval * 1000,
     });
   };
 
@@ -213,7 +214,9 @@ function SettingLayout() {
         return;
       }
 
-      message.success(i18n.t("jiraHostSavedWithPermission", [permissionOrigin]));
+      message.success(
+        i18n.t("jiraHostSavedWithPermission", [permissionOrigin]),
+      );
       void jiraHelper.gotoLogin();
     } catch (error) {
       message.error(getErrorMessage(error));
@@ -230,9 +233,7 @@ function SettingLayout() {
             <img className={cssStyle.setupLogo} src="/icon.svg" alt="" />
             <p className={cssStyle.setupKicker}>{i18n.t("setupKicker")}</p>
             <h1>{i18n.t("setupTitle")}</h1>
-            <p className={cssStyle.setupLead}>
-              {i18n.t("setupLead")}
-            </p>
+            <p className={cssStyle.setupLead}>{i18n.t("setupLead")}</p>
           </section>
 
           <section className={cssStyle.setupPanel}>
@@ -318,82 +319,105 @@ function SettingLayout() {
           if (changedValues.jiraJql !== undefined) setJqlCheckError(null);
         }}
       >
-
         {/* ── 通知设置 ── */}
         <div className={`${cssStyle.section} ${cssStyle.prioritySection}`}>
-          <div className={`${cssStyle.sectionTitle} ${cssStyle.sectionTitleWithMeta}`}>
-            <span className={cssStyle.sectionTitleText}>
-              <BellOutlined />
-              <span>{i18n.t("sectionNotifySettings")}</span>
-            </span>
-            <span className={cssStyle.sectionMetaBadge}>
-              {normalizedSettingData.notifyType === NotificationType.None
-                ? i18n.t("notifyTypeNone")
-                : i18n.t("notifyTypeSystem")}
-            </span>
-          </div>
+          <Collapse
+            bordered={false}
+            className={cssStyle.advancedCollapse}
+            defaultActiveKey={["notify"]}
+            items={[
+              {
+                key: "notify",
+                label: (
+                  <div
+                    className={`${cssStyle.sectionTitle} ${cssStyle.sectionTitleWithMeta}`}
+                  >
+                    <span className={cssStyle.sectionTitleText}>
+                      <BellOutlined />
+                      <span>{i18n.t("sectionNotifySettings")}</span>
+                    </span>
+                    <span className={cssStyle.sectionMetaBadge}>
+                      {normalizedSettingData.notifyType ===
+                      NotificationType.None
+                        ? i18n.t("notifyTypeNone")
+                        : i18n.t("notifyTypeSystem")}
+                    </span>
+                  </div>
+                ),
+                children: (
+                  <>
+                    <div className={cssStyle.notifyPanel}>
+                      <div className={cssStyle.settingPanelHeader}>
+                        <span>{i18n.t("notifyType")}</span>
+                      </div>
+                      <Form.Item
+                        name="notifyType"
+                        className={cssStyle.compactFormItem}
+                      >
+                        <Radio.Group className={cssStyle.notifyRadioGroup}>
+                          <Radio.Button value={NotificationType.None}>
+                            {i18n.t("notifyTypeNone")}
+                          </Radio.Button>
+                          <Radio.Button value={NotificationType.System}>
+                            {i18n.t("notifyTypeSystem")}
+                          </Radio.Button>
+                        </Radio.Group>
+                      </Form.Item>
+                      <p className={cssStyle.helper}>
+                        {i18n.t("notifyTypeHelper")}
+                      </p>
+                    </div>
 
-          <div className={cssStyle.notifyPanel}>
-            <div className={cssStyle.settingPanelHeader}>
-              <span>{i18n.t("notifyType")}</span>
-            </div>
-            <Form.Item name="notifyType" className={cssStyle.compactFormItem}>
-              <Radio.Group className={cssStyle.notifyRadioGroup}>
-                <Radio.Button value={NotificationType.None}>
-                  {i18n.t("notifyTypeNone")}
-                </Radio.Button>
-                <Radio.Button value={NotificationType.System}>
-                  {i18n.t("notifyTypeSystem")}
-                </Radio.Button>
-              </Radio.Group>
-            </Form.Item>
-            <p className={cssStyle.helper}>
-              {i18n.t("notifyTypeHelper")}
-            </p>
-          </div>
+                    <div className={cssStyle.notifyTestPanel}>
+                      <div className={cssStyle.settingPanelHeader}>
+                        <span>{i18n.t("sectionNotifyTest")}</span>
+                      </div>
+                      <p className={cssStyle.helper}>
+                        {i18n.t("testNotifyDesc")}
+                      </p>
+                      <div className={cssStyle.notifyTestAction}>
+                        {!hasClickedTestNotify && (
+                          <div
+                            className={cssStyle.notifyTestBadge}
+                            aria-hidden="true"
+                          >
+                            <ExperimentOutlined />
+                            <span>{i18n.t("testNotifyBadge")}</span>
+                          </div>
+                        )}
+                        <Button
+                          type="default"
+                          icon={<BellOutlined />}
+                          onClick={handleTestNotification}
+                          block
+                        >
+                          {i18n.t("testNotify")}
+                        </Button>
+                      </div>
+                    </div>
 
-          <div className={cssStyle.notifyTestPanel}>
-            <div className={cssStyle.settingPanelHeader}>
-              <span>{i18n.t("sectionNotifyTest")}</span>
-            </div>
-            <p className={cssStyle.helper}>
-              {i18n.t("testNotifyDesc")}
-            </p>
-            <div className={cssStyle.notifyTestAction}>
-              {!hasClickedTestNotify && (
-                <div className={cssStyle.notifyTestBadge} aria-hidden="true">
-                  <ExperimentOutlined />
-                  <span>{i18n.t("testNotifyBadge")}</span>
-                </div>
-              )}
-              <Button
-                type="default"
-                icon={<BellOutlined />}
-                onClick={handleTestNotification}
-                block
-              >
-                {i18n.t("testNotify")}
-              </Button>
-            </div>
-          </div>
-
-          <div className={cssStyle.settingLine}>
-            <div className={cssStyle.settingLineCopy}>
-              <div className={cssStyle.settingLineTitle}>
-                {i18n.t("gotoJira")}
-              </div>
-              <p className={cssStyle.helper}>
-                {i18n.t("gotoJiraHelper")}
-              </p>
-            </div>
-            <Form.Item
-              name="isAutoFocused"
-              valuePropName="checked"
-              noStyle
-            >
-              <Switch />
-            </Form.Item>
-          </div>
+                    <div className={cssStyle.settingLine}>
+                      <div className={cssStyle.settingLineCopy}>
+                        <div className={cssStyle.settingLineTitle}>
+                          {i18n.t("gotoJira")}
+                        </div>
+                        <p className={cssStyle.helper}>
+                          {i18n.t("gotoJiraHelper")}
+                        </p>
+                      </div>
+                      <Form.Item
+                        name="isAutoFocused"
+                        valuePropName="checked"
+                        noStyle
+                      >
+                        <Switch />
+                      </Form.Item>
+                    </div>
+                  </>
+                ),
+              },
+            ]}
+          />
         </div>
 
         {/* ── 检测设置 ── */}
@@ -406,7 +430,9 @@ function SettingLayout() {
               {
                 key: "check",
                 label: (
-                  <div className={`${cssStyle.sectionTitle} ${cssStyle.sectionTitleWithMeta}`}>
+                  <div
+                    className={`${cssStyle.sectionTitle} ${cssStyle.sectionTitleWithMeta}`}
+                  >
                     <span className={cssStyle.sectionTitleText}>
                       <ControlOutlined />
                       <span>{i18n.t("sectionCheckSettings")}</span>
@@ -433,11 +459,7 @@ function SettingLayout() {
                           {i18n.t("openCheckHelper")}
                         </p>
                       </div>
-                      <Form.Item
-                        name="isOpen"
-                        valuePropName="checked"
-                        noStyle
-                      >
+                      <Form.Item name="isOpen" valuePropName="checked" noStyle>
                         <Switch />
                       </Form.Item>
                     </div>
@@ -498,16 +520,28 @@ function SettingLayout() {
                   <>
                     <div className={cssStyle.field}>
                       <div
-                        className={`${cssStyle.settingPanel} ${cssStyle.dueReminderPanel}`}
+                        className={`${cssStyle.settingPanel} ${cssStyle.dueReminderPanel} ${
+                          normalizedSettingData.dueReminderEnabled
+                            ? ""
+                            : cssStyle.dueReminderPanelDisabled
+                        }`}
                       >
                         <div className={cssStyle.dueReminderPanelHeader}>
-                          <div className={cssStyle.settingLineCopy}>
-                            <div className={cssStyle.settingLineTitle}>
-                              {i18n.t("dueReminder")}
+                          <div className={cssStyle.dueReminderTitleBlock}>
+                            <span
+                              className={cssStyle.dueReminderIcon}
+                              aria-hidden="true"
+                            >
+                              <CalendarOutlined />
+                            </span>
+                            <div className={cssStyle.settingLineCopy}>
+                              <div className={cssStyle.settingLineTitle}>
+                                {i18n.t("dueReminder")}
+                              </div>
+                              <p className={cssStyle.helper}>
+                                {i18n.t("dueReminderHelper")}
+                              </p>
                             </div>
-                            <p className={cssStyle.helper}>
-                              {i18n.t("dueReminderHelper")}
-                            </p>
                           </div>
                           <Form.Item
                             name="dueReminderEnabled"
@@ -528,8 +562,22 @@ function SettingLayout() {
                           <Checkbox.Group
                             className={cssStyle.dueReminderCheckboxGroup}
                             disabled={!normalizedSettingData.dueReminderEnabled}
-                            options={dueReminderOffsetOptions}
-                          />
+                          >
+                            {dueReminderOffsetOptions.map((option) => (
+                              <Checkbox
+                                key={option.value}
+                                className={cssStyle.dueReminderOption}
+                                value={option.value}
+                              >
+                                <span
+                                  className={cssStyle.dueReminderOptionContent}
+                                >
+                                  <ClockCircleOutlined aria-hidden="true" />
+                                  <span>{option.label}</span>
+                                </span>
+                              </Checkbox>
+                            ))}
+                          </Checkbox.Group>
                         </Form.Item>
                         <p className={cssStyle.helper}>
                           {i18n.t("dueReminderOffsetsHelper")}
@@ -582,92 +630,89 @@ function SettingLayout() {
           />
         </div>
 
-      {/* ── 数据管理 ── */}
-      <div className={cssStyle.section}>
-        <Collapse
-          bordered={false}
-          className={cssStyle.advancedCollapse}
-          defaultActiveKey={[]}
-          items={[
-            {
-              key: "data",
-              label: (
-                <div className={cssStyle.sectionTitle}>
-                  <DatabaseOutlined />
-                  <span>{i18n.t("sectionDataManage")}</span>
-                </div>
-              ),
-              children: (
-                <div className={cssStyle.field}>
-                  <div className={cssStyle.actionRow}>
-                    <Button
-                      icon={<EyeInvisibleOutlined />}
-                      onClick={() => hideAll()}
-                      className={cssStyle.actionBtn}
-                    >
-                      {i18n.t("ignoreAll")}
-                    </Button>
-                    <Button
-                      type="primary"
-                      icon={<UndoOutlined />}
-                      onClick={() => clearIgnore()}
-                      className={cssStyle.actionBtn}
-                    >
-                      {i18n.t("reset")}
-                    </Button>
+        {/* ── 数据管理 ── */}
+        <div className={cssStyle.section}>
+          <Collapse
+            bordered={false}
+            className={cssStyle.advancedCollapse}
+            defaultActiveKey={[]}
+            items={[
+              {
+                key: "data",
+                label: (
+                  <div className={cssStyle.sectionTitle}>
+                    <DatabaseOutlined />
+                    <span>{i18n.t("sectionDataManage")}</span>
                   </div>
-                  <div className={cssStyle.actionDesc}>
-                    <p>
-                      <span className={cssStyle.label}>
-                        {i18n.t("hideAllLabel")}
-                      </span>
-                      {i18n.t("hideAllDescription")}
-                    </p>
-                    <p>
-                      <span className={cssStyle.label}>
-                        {i18n.t("resetLabel")}
-                      </span>
-                      {i18n.t("resetDescription")}
-                    </p>
+                ),
+                children: (
+                  <div className={cssStyle.field}>
+                    <div className={cssStyle.actionRow}>
+                      <Button
+                        icon={<EyeInvisibleOutlined />}
+                        onClick={() => hideAll()}
+                        className={cssStyle.actionBtn}
+                      >
+                        {i18n.t("ignoreAll")}
+                      </Button>
+                      <Button
+                        type="primary"
+                        icon={<UndoOutlined />}
+                        onClick={() => clearIgnore()}
+                        className={cssStyle.actionBtn}
+                      >
+                        {i18n.t("reset")}
+                      </Button>
+                    </div>
+                    <div className={cssStyle.actionDesc}>
+                      <p>
+                        <span className={cssStyle.label}>
+                          {i18n.t("hideAllLabel")}
+                        </span>
+                        {i18n.t("hideAllDescription")}
+                      </p>
+                      <p>
+                        <span className={cssStyle.label}>
+                          {i18n.t("resetLabel")}
+                        </span>
+                        {i18n.t("resetDescription")}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ),
-            },
-          ]}
-        />
-      </div>
-
-      {/* ── 服务器连接 ── */}
-      <div className={cssStyle.section}>
-        <div className={cssStyle.sectionTitle}>
-          <ApiOutlined />
-          <span>{i18n.t("sectionServerConnection")}</span>
+                ),
+              },
+            ]}
+          />
         </div>
-        {shouldShowJiraSetupHint && (
-          <Alert
-            showIcon
-            type="info"
-            message={i18n.t("setupAlertTitle")}
-            description={i18n.t("setupAlertDescription")}
-            className={cssStyle.setupAlert}
-          />
-        )}
-        <Form.Item
-          name="serverURL"
-          rules={[{ required: true, message: i18n.t("serverRequired") }]}
-        >
-          <Input.Search
-            enterButton={i18n.t("authorizeAndSave")}
-            loading={isSavingJiraHost}
-            placeholder={i18n.t("serverPlaceholder")}
-            onSearch={saveJiraServerURL}
-          />
-        </Form.Item>
-        <p className={cssStyle.helper}>
-          {i18n.t("serverHelper")}
-        </p>
-      </div>
 
+        {/* ── 服务器连接 ── */}
+        <div className={cssStyle.section}>
+          <div className={cssStyle.sectionTitle}>
+            <ApiOutlined />
+            <span>{i18n.t("sectionServerConnection")}</span>
+          </div>
+          {shouldShowJiraSetupHint && (
+            <Alert
+              showIcon
+              type="info"
+              message={i18n.t("setupAlertTitle")}
+              description={i18n.t("setupAlertDescription")}
+              className={cssStyle.setupAlert}
+            />
+          )}
+          <Form.Item
+            name="serverURL"
+            rules={[{ required: true, message: i18n.t("serverRequired") }]}
+          >
+            <Input.Search
+              enterButton={i18n.t("authorizeAndSave")}
+              loading={isSavingJiraHost}
+              placeholder={i18n.t("serverPlaceholder")}
+              onSearch={saveJiraServerURL}
+            />
+          </Form.Item>
+          <p className={cssStyle.helper}>{i18n.t("serverHelper")}</p>
+        </div>
       </Form>
 
       {/* ── 项目链接 ── */}
