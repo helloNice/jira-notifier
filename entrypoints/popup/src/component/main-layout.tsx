@@ -7,6 +7,7 @@ import {
   useLocation,
   useNavigate,
 } from "react-router-dom";
+import { useEffect } from "react";
 import cssStyles from "./main-layout.module.scss";
 import SettingLayout from "./page/setting-layout";
 
@@ -33,17 +34,27 @@ function MainLayout() {
 
   return (
     <HashRouter>
-      <div className={cssStyles.app}>
-        <Header />
-        <div className={cssStyles.body}>
-          <Routes>
-            <Route path="/" element={<NewBugLayout />} />
-            <Route path="/setting" element={<SettingLayout />} />
-            <Route path="/login" element={<LoginLayout />} />
-          </Routes>
-        </div>
-      </div>
+      <AppShell />
     </HashRouter>
+  );
+}
+
+function AppShell() {
+  const location = useLocation();
+  const isJiraSetup = location.pathname === "/setting" &&
+    new URLSearchParams(location.search).get("setup") === "jira";
+
+  return (
+    <div className={`${cssStyles.app} ${isJiraSetup ? cssStyles.setupApp : ""}`}>
+      {!isJiraSetup && <Header />}
+      <div className={cssStyles.body}>
+        <Routes>
+          <Route path="/" element={<NewBugLayout />} />
+          <Route path="/setting" element={<SettingLayout />} />
+          <Route path="/login" element={<LoginLayout />} />
+        </Routes>
+      </div>
+    </div>
   );
 }
 

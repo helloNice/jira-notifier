@@ -1,8 +1,8 @@
 {
   "name": "jira-notifier",
-  "description": "Jira 提示检查工具",
+  "description": "定时检查指派给你的 Jira 未解决任务，并通知新任务或重新打开任务",
   "private": true,
-  "version": "1.2.0",
+  "version": "1.2.10",
   "type": "module",
   "scripts": {
     "dev": "wxt",

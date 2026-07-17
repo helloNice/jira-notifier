@@ -208,11 +208,11 @@ function NewBugLayout() {
         onDrop={onDrop}
       >
         <span
-          aria-label="拖动项目排序"
+          aria-label={i18n.t("dragProjectSort")}
           className={cssStyles.projectDragHandle}
           draggable
           role="button"
-          title="拖动项目排序"
+          title={i18n.t("dragProjectSort")}
           onClick={(event) => event.stopPropagation()}
           onDragEnd={() => {
             setDraggingProjectKey(null);
@@ -229,7 +229,9 @@ function NewBugLayout() {
           <HolderOutlined />
         </span>
         <span className={cssStyles.projectName}>{project.name}</span>
-        <span className={cssStyles.projectCount}>（{project.count}）</span>
+        <span className={cssStyles.projectCount}>
+          {i18n.t("projectIssueCount", [project.count])}
+        </span>
       </div>
     );
   };
@@ -237,7 +239,7 @@ function NewBugLayout() {
   return (
     <div className={cssStyles.page}>
       <div className={cssStyles.toolbar}>
-        <span className={cssStyles.toolbarTitle}>我的任务</span>
+        <span className={cssStyles.toolbarTitle}>{i18n.t("myTasks")}</span>
         <span className={cssStyles.countdown}>
           <ClockCircleOutlined />
           {countdownText}

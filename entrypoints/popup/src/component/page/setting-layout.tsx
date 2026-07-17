@@ -3,6 +3,7 @@ import {
   ISettingData,
   NEXT_CHECK_AT_STORAGE_KEY,
   NotificationType,
+  persistSettingPatch,
   useSettingStore,
 } from "@/src/store/settingStore";
 import { useJiraStore } from "@/src/store/jiraStore";
@@ -12,16 +13,20 @@ import {
   requestHostPermission,
 } from "@/src/utils/common/hostPermission";
 import {
+  jiraHelper,
   sendTestNotification,
   validateJiraJql,
 } from "@/src/utils/common/jiraClient";
 import {
   ApiOutlined,
   BellOutlined,
+  CheckCircleOutlined,
   ControlOutlined,
   DatabaseOutlined,
   EyeInvisibleOutlined,
   GithubOutlined,
+  ExperimentOutlined,
+  LinkOutlined,
   SettingOutlined,
   UndoOutlined,
 } from "@ant-design/icons";
@@ -99,6 +104,9 @@ function SettingLayout() {
   const [sliderInterval, setSliderInterval] = useState(
     normalizedSettingData.interval,
   );
+  const hasClickedTestNotify = Boolean(
+    normalizedSettingData.hasClickedTestNotify,
+  );
 
   useEffect(() => {
     form.setFieldsValue(normalizedSettingData);
@@ -107,6 +115,7 @@ function SettingLayout() {
     form,
     normalizedSettingData.interval,
     normalizedSettingData.isAutoFocused,
+    normalizedSettingData.hasClickedTestNotify,
     normalizedSettingData.isOpen,
     normalizedSettingData.jiraJql,
     normalizedSettingData.notifyType,
@@ -125,14 +134,29 @@ function SettingLayout() {
     });
   };
 
-  const updateSettings = (patch: Partial<ISettingData>) => {
-    useSettingStore.setState(patch);
+  const applySettings = async (patch: Partial<ISettingData>) => {
+    await persistSettingPatch(patch);
 
     if ("interval" in patch || "isOpen" in patch) {
       syncNextCheckAt({
         ...useSettingStore.getState(),
         ...patch,
       });
+    }
+  };
+
+  const updateSettings = (patch: Partial<ISettingData>) => {
+    void applySettings(patch);
+  };
+
+  const handleTestNotification = () => {
+    updateSettings({ hasClickedTestNotify: true });
+
+    const ok = sendTestNotification();
+    if (ok) {
+      message.success(i18n.t("testNotifyHint"));
+    } else {
+      message.warning(i18n.t("testNotifyDisabled"));
     }
   };
 
@@ -150,23 +174,81 @@ function SettingLayout() {
       const { serverURL } = await form.validateFields(["serverURL"]);
       const nextServerURL = normalizeJiraServerURL(String(serverURL ?? ""));
       const permissionOrigin = getHostPermissionOrigin(nextServerURL);
+
+      await applySettings({ serverURL: nextServerURL });
+      form.setFieldValue("serverURL", nextServerURL);
+
       const allowed = await requestHostPermission(nextServerURL);
 
       if (!allowed) {
-        message.error("未获得 Jira 地址访问权限，服务器地址未保存");
+        message.warning(i18n.t("jiraHostPermissionDenied"));
         return;
       }
 
-      updateSettings({ serverURL: nextServerURL });
-      form.setFieldValue("serverURL", nextServerURL);
-      message.success(`已授权并保存 ${permissionOrigin}`);
-      window.setTimeout(() => browser.runtime.reload(), 800);
+      message.success(i18n.t("jiraHostSavedWithPermission", [permissionOrigin]));
+      void jiraHelper.gotoLogin();
     } catch (error) {
       message.error(getErrorMessage(error));
     } finally {
       setIsSavingJiraHost(false);
     }
   };
+
+  if (shouldShowJiraSetupHint) {
+    return (
+      <div className={cssStyle.setupPage}>
+        <main className={cssStyle.setupShell}>
+          <section className={cssStyle.setupIntro}>
+            <img className={cssStyle.setupLogo} src="/icon.svg" alt="" />
+            <p className={cssStyle.setupKicker}>{i18n.t("setupKicker")}</p>
+            <h1>{i18n.t("setupTitle")}</h1>
+            <p className={cssStyle.setupLead}>
+              {i18n.t("setupLead")}
+            </p>
+          </section>
+
+          <section className={cssStyle.setupPanel}>
+            <div className={cssStyle.setupPanelHeader}>
+              <div className={cssStyle.setupPanelIcon}>
+                <LinkOutlined />
+              </div>
+              <div>
+                <h2>{i18n.t("jiraAddressTitle")}</h2>
+                <p>{i18n.t("jiraAddressHelp")}</p>
+              </div>
+            </div>
+
+            <Form
+              form={form}
+              layout="vertical"
+              initialValues={normalizedSettingData}
+              className={cssStyle.setupForm}
+            >
+              <Form.Item
+                name="serverURL"
+                label={i18n.t("serverURLLabel")}
+                rules={[{ required: true, message: i18n.t("serverRequired") }]}
+              >
+                <Input.Search
+                  autoFocus
+                  enterButton={i18n.t("authorizeAndSave")}
+                  loading={isSavingJiraHost}
+                  placeholder="https://jira.example.com"
+                  size="large"
+                  onSearch={saveJiraServerURL}
+                />
+              </Form.Item>
+            </Form>
+
+            <div className={cssStyle.setupFootnote}>
+              <CheckCircleOutlined />
+              <span>{i18n.t("setupFootnote")}</span>
+            </div>
+          </section>
+        </main>
+      </div>
+    );
+  }
 
   const checkJiraJql = async () => {
     const jiraJql = String(form.getFieldValue("jiraJql") ?? "").trim();
@@ -178,7 +260,7 @@ function SettingLayout() {
       await validateJiraJql(jiraJql);
       updateSettings({ jiraJql: jiraJql || DEFAULT_JIRA_JQL });
       clearIgnore();
-      message.success("JQL 检测通过，已重置记录并重新拉取任务");
+      message.success(i18n.t("jqlCheckPassed"));
     } catch (error) {
       setJqlCheckError(getErrorMessage(error));
     } finally {
@@ -204,97 +286,26 @@ function SettingLayout() {
         }}
       >
 
-        {/* ── 服务器连接 ── */}
-        <div className={cssStyle.section}>
-          <div className={cssStyle.sectionTitle}>
-            <ApiOutlined />
-            <span>服务器连接</span>
-          </div>
-          {shouldShowJiraSetupHint && (
-            <Alert
-              showIcon
-              type="info"
-              message="请先配置 Jira 地址"
-              description="输入 Jira 首页或任意 Jira 页面链接，点击“授权并保存”后再登录。保存时会自动裁切为主机名和端口。"
-              className={cssStyle.setupAlert}
-            />
-          )}
-          <Form.Item
-            name="serverURL"
-            rules={[{ required: true, message: i18n.t("serverRequired") }]}
-          >
-            <Input.Search
-              enterButton="授权并保存"
-              loading={isSavingJiraHost}
-              placeholder={i18n.t("serverPlaceholder")}
-              onSearch={saveJiraServerURL}
-            />
-          </Form.Item>
-          <p className={cssStyle.helper}>
-            指向你的 Jira 服务器地址，扩展通过此地址获取任务数据
-          </p>
-        </div>
-
-        {/* ── 检测设置 ── */}
-        <div className={cssStyle.section}>
-          <div className={cssStyle.sectionTitle}>
-            <ControlOutlined />
-            <span>检测设置</span>
-          </div>
-
-          <div className={cssStyle.field}>
-            <Form.Item
-              name="isOpen"
-              label={i18n.t("openCheck")}
-              valuePropName="checked"
-            >
-              <Switch />
-            </Form.Item>
-            <p className={cssStyle.helper}>
-              开启后自动轮询检测新指派的任务
-            </p>
-          </div>
-
-          <div className={cssStyle.field}>
-            <Form.Item label={i18n.t("interval")}>
-              <div className={cssStyle.sliderWrapper}>
-                <Slider
-                  style={{ flex: 1 }}
-                  step={1}
-                  min={MIN_INTERVAL_SECONDS}
-                  max={MAX_INTERVAL_SECONDS}
-                  value={sliderInterval}
-                  onChange={setSliderInterval}
-                  onChangeComplete={updateInterval}
-                  tooltip={{ open: false }}
-                />
-                <InputNumber
-                  min={MIN_INTERVAL_SECONDS}
-                  max={MAX_INTERVAL_SECONDS}
-                  value={normalizedSettingData.interval}
-                  suffix="s"
-                  controls={false}
-                  className={cssStyle.intervalInput}
-                  onChange={updateInterval}
-                />
-              </div>
-            </Form.Item>
-            <p className={cssStyle.helper}>
-              建议 180 秒（3 分钟）。过快增加服务器压力，过慢可能漏掉通知
-            </p>
-          </div>
-        </div>
-
         {/* ── 通知设置 ── */}
-        <div className={cssStyle.section}>
-          <div className={cssStyle.sectionTitle}>
-            <BellOutlined />
-            <span>通知设置</span>
+        <div className={`${cssStyle.section} ${cssStyle.prioritySection}`}>
+          <div className={`${cssStyle.sectionTitle} ${cssStyle.sectionTitleWithMeta}`}>
+            <span className={cssStyle.sectionTitleText}>
+              <BellOutlined />
+              <span>{i18n.t("sectionNotifySettings")}</span>
+            </span>
+            <span className={cssStyle.sectionMetaBadge}>
+              {normalizedSettingData.notifyType === NotificationType.None
+                ? i18n.t("notifyTypeNone")
+                : i18n.t("notifyTypeSystem")}
+            </span>
           </div>
 
-          <div className={cssStyle.field}>
-            <Form.Item name="notifyType" label={i18n.t("notifyType")}>
-              <Radio.Group>
+          <div className={cssStyle.notifyPanel}>
+            <div className={cssStyle.settingPanelHeader}>
+              <span>{i18n.t("notifyType")}</span>
+            </div>
+            <Form.Item name="notifyType" className={cssStyle.compactFormItem}>
+              <Radio.Group className={cssStyle.notifyRadioGroup}>
                 <Radio.Button value={NotificationType.None}>
                   {i18n.t("notifyTypeNone")}
                 </Radio.Button>
@@ -304,22 +315,136 @@ function SettingLayout() {
               </Radio.Group>
             </Form.Item>
             <p className={cssStyle.helper}>
-              有新任务指派时，通过选择的方式通知你
+              {i18n.t("notifyTypeHelper")}
             </p>
           </div>
 
-          <div className={cssStyle.field}>
+          <div className={cssStyle.notifyTestPanel}>
+            <div className={cssStyle.settingPanelHeader}>
+              <span>{i18n.t("sectionNotifyTest")}</span>
+            </div>
+            <p className={cssStyle.helper}>
+              {i18n.t("testNotifyDesc")}
+            </p>
+            <div className={cssStyle.notifyTestAction}>
+              {!hasClickedTestNotify && (
+                <div className={cssStyle.notifyTestBadge} aria-hidden="true">
+                  <ExperimentOutlined />
+                  <span>{i18n.t("testNotifyBadge")}</span>
+                </div>
+              )}
+              <Button
+                type="default"
+                icon={<BellOutlined />}
+                onClick={handleTestNotification}
+                block
+              >
+                {i18n.t("testNotify")}
+              </Button>
+            </div>
+          </div>
+
+          <div className={cssStyle.settingLine}>
+            <div className={cssStyle.settingLineCopy}>
+              <div className={cssStyle.settingLineTitle}>
+                {i18n.t("gotoJira")}
+              </div>
+              <p className={cssStyle.helper}>
+                {i18n.t("gotoJiraHelper")}
+              </p>
+            </div>
             <Form.Item
               name="isAutoFocused"
-              label={i18n.t("gotoJira")}
               valuePropName="checked"
+              noStyle
             >
               <Switch />
             </Form.Item>
-            <p className={cssStyle.helper}>
-              开启后，点击通知或任务时自动切换到 Jira 页面
-            </p>
           </div>
+        </div>
+
+        {/* ── 检测设置 ── */}
+        <div className={cssStyle.section}>
+          <Collapse
+            bordered={false}
+            className={cssStyle.advancedCollapse}
+            defaultActiveKey={[]}
+            items={[
+              {
+                key: "check",
+                label: (
+                  <div className={`${cssStyle.sectionTitle} ${cssStyle.sectionTitleWithMeta}`}>
+                    <span className={cssStyle.sectionTitleText}>
+                      <ControlOutlined />
+                      <span>{i18n.t("sectionCheckSettings")}</span>
+                    </span>
+                    <span
+                      className={`${cssStyle.sectionMetaBadge} ${
+                        normalizedSettingData.isOpen ? "" : cssStyle.isMuted
+                      }`}
+                    >
+                      {normalizedSettingData.isOpen
+                        ? `${normalizedSettingData.interval}s`
+                        : i18n.t("nextCheckDisabled")}
+                    </span>
+                  </div>
+                ),
+                children: (
+                  <div className={cssStyle.field}>
+                    <div className={cssStyle.settingLine}>
+                      <div className={cssStyle.settingLineCopy}>
+                        <div className={cssStyle.settingLineTitle}>
+                          {i18n.t("openCheck")}
+                        </div>
+                        <p className={cssStyle.helper}>
+                          {i18n.t("openCheckHelper")}
+                        </p>
+                      </div>
+                      <Form.Item
+                        name="isOpen"
+                        valuePropName="checked"
+                        noStyle
+                      >
+                        <Switch />
+                      </Form.Item>
+                    </div>
+
+                    <div className={cssStyle.settingPanel}>
+                      <div className={cssStyle.settingPanelHeader}>
+                        <span>{i18n.t("interval")}</span>
+                      </div>
+                      <Form.Item className={cssStyle.compactFormItem}>
+                        <div className={cssStyle.sliderWrapper}>
+                          <Slider
+                            style={{ flex: 1 }}
+                            step={1}
+                            min={MIN_INTERVAL_SECONDS}
+                            max={MAX_INTERVAL_SECONDS}
+                            value={sliderInterval}
+                            onChange={setSliderInterval}
+                            onChangeComplete={updateInterval}
+                            tooltip={{ open: false }}
+                          />
+                          <InputNumber
+                            min={MIN_INTERVAL_SECONDS}
+                            max={MAX_INTERVAL_SECONDS}
+                            value={normalizedSettingData.interval}
+                            suffix="s"
+                            controls={false}
+                            className={cssStyle.intervalInput}
+                            onChange={updateInterval}
+                          />
+                        </div>
+                      </Form.Item>
+                      <p className={cssStyle.helper}>
+                        {i18n.t("intervalHelper")}
+                      </p>
+                    </div>
+                  </div>
+                ),
+              },
+            ]}
+          />
         </div>
 
         {/* ── 高级选项 ── */}
@@ -333,7 +458,7 @@ function SettingLayout() {
                 label: (
                   <div className={cssStyle.sectionTitle}>
                     <SettingOutlined />
-                    <span>高级选项</span>
+                    <span>{i18n.t("sectionAdvanced")}</span>
                   </div>
                 ),
                 children: (
@@ -342,12 +467,12 @@ function SettingLayout() {
                       <Alert
                         showIcon
                         type="error"
-                        message="JQL 检测失败"
+                        message={i18n.t("jqlCheckFailed")}
                         description={jqlCheckError}
                         className={cssStyle.jqlAlert}
                       />
                     )}
-                    <Form.Item label="Jira JQL">
+                    <Form.Item label={i18n.t("jiraJql")}>
                       <div className={cssStyle.jqlControlRow}>
                         <Form.Item name="jiraJql" noStyle>
                           <Input.TextArea
@@ -360,12 +485,12 @@ function SettingLayout() {
                           loading={isCheckingJql}
                           onClick={checkJiraJql}
                         >
-                          检测
+                          {i18n.t("jqlCheckButton")}
                         </Button>
                       </div>
                     </Form.Item>
                     <p className={cssStyle.helper}>
-                      自定义后台轮询使用的 Jira 查询语句。留空时使用默认查询条件
+                      {i18n.t("jiraJqlHelper")}
                     </p>
                   </div>
                 ),
@@ -374,74 +499,99 @@ function SettingLayout() {
           />
         </div>
 
-      </Form>
+      {/* ── 数据管理 ── */}
+      <div className={cssStyle.section}>
+        <Collapse
+          bordered={false}
+          className={cssStyle.advancedCollapse}
+          defaultActiveKey={[]}
+          items={[
+            {
+              key: "data",
+              label: (
+                <div className={cssStyle.sectionTitle}>
+                  <DatabaseOutlined />
+                  <span>{i18n.t("sectionDataManage")}</span>
+                </div>
+              ),
+              children: (
+                <div className={cssStyle.field}>
+                  <div className={cssStyle.actionRow}>
+                    <Button
+                      icon={<EyeInvisibleOutlined />}
+                      onClick={() => hideAll()}
+                      className={cssStyle.actionBtn}
+                    >
+                      {i18n.t("ignoreAll")}
+                    </Button>
+                    <Button
+                      type="primary"
+                      icon={<UndoOutlined />}
+                      onClick={() => clearIgnore()}
+                      className={cssStyle.actionBtn}
+                    >
+                      {i18n.t("reset")}
+                    </Button>
+                  </div>
+                  <div className={cssStyle.actionDesc}>
+                    <p>
+                      <span className={cssStyle.label}>
+                        {i18n.t("hideAllLabel")}
+                      </span>
+                      {i18n.t("hideAllDescription")}
+                    </p>
+                    <p>
+                      <span className={cssStyle.label}>
+                        {i18n.t("resetLabel")}
+                      </span>
+                      {i18n.t("resetDescription")}
+                    </p>
+                  </div>
+                </div>
+              ),
+            },
+          ]}
+        />
+      </div>
 
-      {/* ── 通知测试 ── */}
+      {/* ── 服务器连接 ── */}
       <div className={cssStyle.section}>
         <div className={cssStyle.sectionTitle}>
-          <BellOutlined />
-          <span>通知测试</span>
+          <ApiOutlined />
+          <span>{i18n.t("sectionServerConnection")}</span>
         </div>
-        <Button
-          type="default"
-          icon={<BellOutlined />}
-          onClick={() => {
-            const ok = sendTestNotification();
-            if (ok) {
-              message.success(i18n.t("testNotifyHint"));
-            } else {
-              message.warning(i18n.t("testNotifyDisabled"));
-            }
-          }}
-          block
+        {shouldShowJiraSetupHint && (
+          <Alert
+            showIcon
+            type="info"
+            message={i18n.t("setupAlertTitle")}
+            description={i18n.t("setupAlertDescription")}
+            className={cssStyle.setupAlert}
+          />
+        )}
+        <Form.Item
+          name="serverURL"
+          rules={[{ required: true, message: i18n.t("serverRequired") }]}
         >
-          {i18n.t("testNotify")}
-        </Button>
-        <p className={cssStyle.helper} style={{ marginTop: 6 }}>
-          {i18n.t("testNotifyDesc")}
+          <Input.Search
+            enterButton={i18n.t("authorizeAndSave")}
+            loading={isSavingJiraHost}
+            placeholder={i18n.t("serverPlaceholder")}
+            onSearch={saveJiraServerURL}
+          />
+        </Form.Item>
+        <p className={cssStyle.helper}>
+          {i18n.t("serverHelper")}
         </p>
       </div>
 
-      {/* ── 数据管理 ── */}
-      <div className={cssStyle.section}>
-        <div className={cssStyle.sectionTitle}>
-          <DatabaseOutlined />
-          <span>数据管理</span>
-        </div>
-        <div className={cssStyle.actionRow}>
-          <Button
-            icon={<EyeInvisibleOutlined />}
-            onClick={() => hideAll()}
-            className={cssStyle.actionBtn}
-          >
-            {i18n.t("ignoreAll")}
-          </Button>
-          <Button
-            type="primary"
-            icon={<UndoOutlined />}
-            onClick={() => clearIgnore()}
-            className={cssStyle.actionBtn}
-          >
-            {i18n.t("reset")}
-          </Button>
-        </div>
-        <div className={cssStyle.actionDesc}>
-          <p>
-            <span className={cssStyle.label}>全部隐藏：</span>
-            旧版隐藏记录入口；当前列表仍以 Jira 当前指派状态为准
-          </p>
-          <p>
-            <span className={cssStyle.label}>重置记录：</span>
-            清空本地隐藏和已通知记录，重新拉取任务，用于数据异常修复
-          </p>
-        </div>
-      </div>
+      </Form>
 
       {/* ── 项目链接 ── */}
       <div className={cssStyle.section}>
         <div className={cssStyle.sectionTitle}>
           <GithubOutlined />
-          <span>项目链接</span>
+          <span>{i18n.t("sectionProjectLink")}</span>
         </div>
         <Button
           type="default"
@@ -449,10 +599,10 @@ function SettingLayout() {
           onClick={() => browser.tabs.create({ url: GITHUB_URL })}
           block
         >
-          GitHub 仓库
+          {i18n.t("githubRepo")}
         </Button>
         <p className={cssStyle.helper} style={{ marginTop: 6 }}>
-          查看源码、提交 Issue 或关注更新
+          {i18n.t("githubRepoDesc")}
         </p>
       </div>
     </div>

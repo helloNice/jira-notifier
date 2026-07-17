@@ -1,5 +1,6 @@
-extName: Jira Notifier
-extDescription: A tool for getting new Bug notifications in Jira
+extName: Qingbug - Jira Todo Reminder
+extManifestName: Qingbug - Jira Todo Reminder
+extDescription: Checks Jira for unresolved issues assigned to you and notifies you about new or reopened tasks
 
 noLoginTitle: Not logged in to Jira
 noLoginContent: After logging in, automatically get the latest content in Jira
@@ -14,6 +15,8 @@ taskCount: $1 tasks
 server: Server
 serverRequired: The server address cannot be empty
 serverPlaceholder: Please enter the Jira server address
+serverURLLabel: Server address
+authorizeAndSave: Authorize and save
 openCheck: Open detection
 interval: Detection interval
 notifyType: Notification
@@ -23,9 +26,43 @@ gotoJira: Directly jump
 reset: Reset history
 ignoreAll: Hide all
 testNotify: Test notification
-testNotifyDesc: Verify notifications are working (unavailable in Silent mode)
+testNotifyDesc: Verify notifications are working. The hint hides after the first click. (unavailable in Silent mode)
+testNotifyBadge: Click once
 testNotifyHint: System notification triggered, check the top-right of your desktop
 testNotifyDisabled: Silent mode is on, testing is unavailable
+setupKicker: Qingbug Jira Todo Reminder
+setupTitle: Connect your Jira
+setupLead: Enter your Jira server address. After authorization, the Jira login page will open.
+jiraAddressTitle: Jira address
+jiraAddressHelp: A Jira home page or any Jira page link works.
+setupFootnote: Only the server address is saved. Jira passwords are never saved.
+jiraHostPermissionDenied: Jira address saved, but access was not authorized. Please authorize again.
+jiraHostSavedWithPermission: Authorized and saved $1
+sectionServerConnection: Server connection
+setupAlertTitle: Configure your Jira address first
+setupAlertDescription: Enter a Jira home page or any Jira page link, then click "Authorize and save" before logging in. The address is trimmed to the host and port automatically.
+serverHelper: The Jira server address used by the extension to fetch task data
+sectionCheckSettings: Check settings
+openCheckHelper: Automatically checks for newly assigned tasks when enabled
+intervalHelper: 180 seconds is recommended. Shorter intervals add server load, longer intervals may delay notifications
+sectionNotifySettings: Notification settings
+notifyTypeHelper: Choose how to notify you when new tasks are assigned
+gotoJiraHelper: When enabled, notification and task clicks switch directly to Jira
+sectionAdvanced: Advanced options
+jqlCheckFailed: JQL check failed
+jqlCheckPassed: JQL check passed. Records were reset and tasks are being fetched again
+jqlCheckButton: Check
+jiraJql: Jira JQL
+jiraJqlHelper: Custom Jira query used by background checks. Leave empty to use the default query
+sectionNotifyTest: Notification test
+sectionDataManage: Data management
+hideAllLabel: "Hide all: "
+hideAllDescription: Legacy hidden-record entry. The current list still follows Jira assignment state
+resetLabel: "Reset history: "
+resetDescription: Clear local hidden and notified records, then fetch tasks again to repair abnormal data
+sectionProjectLink: Project link
+githubRepo: GitHub repository
+githubRepoDesc: View source code, submit issues, or follow updates
 
 # Empty state
 emptyStateTitle: All done!
@@ -33,7 +70,14 @@ emptyStateDesc: You have no unresolved issues assigned to you
 nextCheckCountdown: Check in $1s
 nextCheckRunning: Checking...
 nextCheckDisabled: Detection off
+dragProjectSort: Drag to sort projects
+myTasks: My tasks
+projectIssueCount: ($1)
 
+hostUrlProtocolError: Jira address must start with http:// or https://
+jiraHostPermissionMissing: Access to the current Jira address is not authorized. Save and authorize the Jira address in Settings first
+testNotificationTitle: Test notification
+testNotificationMessage: If you can see this message, notifications are working.
 noticeNewCount:
   1: 1 new Bug
   n: $1 new Bugs

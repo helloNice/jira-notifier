@@ -1,39 +1,40 @@
-# Jira Bug 提示插件
+# 小青龙 - Jira 待办提醒
 
 ![封面图](https://github.com/jiangjiji/jira-notifier/blob/main/doc/img/cover.png?raw=true)
 
-Jira Notifier 是一个 Chrome 扩展，用于定时检查当前登录用户在 Jira 中未解决且指派给自己的任务，并在后台轮询发现新任务时发送通知。
+小青龙 - Jira 待办提醒是一个 Chrome 扩展，用于定时检查当前登录用户在 Jira 中未解决且指派给自己的任务，并在后台轮询发现新任务或重新打开任务时发送通知。
 
-## 构建与加载
+## 功能概览
 
-```bash
-pnpm install
-pnpm build
-```
-
-构建后产物位于 `.output/chrome-mv3`。
-
-在 Chrome 中加载：
-
-1. 打开 `chrome://extensions/`。
-2. 开启右上角“开发者模式”。
-3. 点击“加载已解压的扩展程序”。
-4. 选择本项目的 `.output/chrome-mv3` 目录。
-
-> 开发调试也可以使用 `pnpm dev`，生产加载请使用 `pnpm build` 生成的 `.output/chrome-mv3`。
+- 首次安装后自动打开 Jira 地址配置页，不需要先点击扩展里的“登录”。
+- 首次配置页只要求输入 Jira 服务器地址，并通过 Chrome host permission 授权访问该 Jira。
+- 扩展复用当前 Chrome 中的 Jira 登录 Session，不保存 Jira 密码。
+- 支持中文和英文界面，语言跟随 Chrome 扩展环境。
+- 后台按间隔轮询当前 Jira 用户被指派的未解决任务，并对新增任务发送系统通知。
+- popup 中展示当前任务列表、下一次检查倒计时和任务数量角标。
 
 ## 默认配置
 
 扩展默认配置保存在浏览器本地存储中：
 
-- Jira 地址：首次使用需要在设置页填写，例如 `https://jira.example.com`
+- Jira 地址：首次安装后会自动打开专用配置页，例如填写 `https://jira.example.com`
 - 开启检测：默认开启
 - 检测间隔：默认 `180` 秒，设置页可在 `60` 到 `600` 秒之间调整
 - 通知方式：默认“系统通知”
 - 不通知：关闭系统通知，仅更新 popup 中的任务列表和角标
-- 直接跳转：默认关闭；开启后，从 popup 点击任务会打开 Jira 任务页并自动切换过去
+- 直接跳转：默认开启；开启后，从 popup 点击任务会打开 Jira 任务页并自动切换过去
 
-设置页修改会立即写入本地存储；填写 Jira 地址并开启检测后，后台会按检测间隔自动轮询。
+设置页修改会立即写入本地存储；填写 Jira 地址并授权后，后台会按检测间隔自动轮询。
+
+## 首次安装与登录
+
+1. 安装扩展后，会自动打开“小青龙 Jira 待办提醒”的连接页面。
+2. 输入 Jira 首页或任意 Jira 页面链接，例如 `https://jira.example.com`。
+3. 点击“授权并保存”，Chrome 会请求该 Jira 地址的访问权限。
+4. 授权成功后会打开 Jira 登录页。
+5. 在同一个 Chrome 中完成 Jira 登录后，再打开扩展即可查看任务。
+
+该流程只保存 Jira 服务器地址，不保存 Jira 用户名或密码。
 
 ## 通知规则
 
@@ -70,7 +71,7 @@ pnpm build
 后台轮询检查的是 Jira JQL：
 
 ```text
-resolution = Unresolved AND assignee in (currentUser()) ORDER BY created DESC
+resolution = Unresolved AND assignee in (currentUser()) ORDER BY updated DESC
 ```
 
 因此 Reopen 后重新进入未解决列表且指派给当前用户的任务也会出现在检查结果中。
@@ -83,14 +84,3 @@ resolution = Unresolved AND assignee in (currentUser()) ORDER BY created DESC
 
 - 全部隐藏：把当前列表中的所有任务加入隐藏列表，立即从 popup 列表移除，并且不对这些任务再次发送通知。
 - 重置记录：清空隐藏记录和已通知记录，然后重新拉取当前未解决任务。该次拉取不会发送通知，用于恢复列表展示和重新整理本地记录。
-
-## 常用脚本
-
-```bash
-pnpm dev          # 启动 WXT 开发模式
-pnpm build        # 构建 Chrome MV3 扩展到 .output/chrome-mv3
-pnpm compile      # TypeScript 类型检查
-pnpm zip          # 打包 Chrome 扩展
-pnpm build:firefox
-pnpm zip:firefox
-```

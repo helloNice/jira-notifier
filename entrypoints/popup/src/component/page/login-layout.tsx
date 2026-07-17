@@ -1,16 +1,19 @@
 import { useSettingStore } from "@/src/store/settingStore";
 import { jiraHelper } from "@/src/utils/common/jiraClient";
 import { Button } from "antd";
-import { useNavigate } from "react-router-dom";
 import cssStyles from "./login-layout.module.scss";
 
+function openJiraSetupPage() {
+  const setupUrl = browser.runtime.getURL("/popup.html#/setting?setup=jira");
+  void browser.tabs.create({ active: true, url: setupUrl });
+}
+
 function LoginLayout() {
-  const navigate = useNavigate();
   const serverURL = useSettingStore((state) => state.serverURL);
 
   const onLogin = () => {
     if (!serverURL.trim()) {
-      navigate("/setting?setup=jira");
+      openJiraSetupPage();
       return;
     }
 

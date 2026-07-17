@@ -1,8 +1,10 @@
+import { i18n } from "#imports";
+
 export function normalizeJiraServerURL(url: string) {
   const parsedUrl = new URL(url.trim());
 
   if (!["http:", "https:"].includes(parsedUrl.protocol)) {
-    throw new Error("Jira 地址必须以 http:// 或 https:// 开头");
+    throw new Error(i18n.t("hostUrlProtocolError"));
   }
 
   return parsedUrl.origin;

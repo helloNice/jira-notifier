@@ -8,6 +8,9 @@ export default defineConfig({
     name: "__MSG_extName__",
     description: "__MSG_extDescription__",
 
+    action: {
+      default_title: "__MSG_extManifestName__",
+    },
     permissions: ["notifications", "storage", "alarms"],
     optional_host_permissions: ["http://*/*", "https://*/*"],
   },

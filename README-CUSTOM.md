@@ -1,4 +1,4 @@
-# Jira 任务通知助手（精简版）
+# 小青龙 - Jira 待办提醒（精简版）
 
 基于 [jiangjiji/jira-notifier](https://github.com/jiangjiji/jira-notifier) 改造的精简版。
 

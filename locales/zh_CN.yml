@@ -1,5 +1,6 @@
-extName: Jira Notifier
-extDescription: Jira 新增Bug提示工具
+extName: 小青龙 - Jira 待办提醒
+extManifestName: 我是一条小青龙
+extDescription: 定时检查指派给你的 Jira 未解决任务，并通知新任务或重新打开任务
 # 内容页面
 noLoginTitle: Jira 未登录
 noLoginContent: 登录后，自动获取最新的Jira内容
@@ -15,7 +16,9 @@ taskCount: $1 个任务
 # 设置页面
 server: 服务器
 serverRequired: 服务器地址不能为空
-serverPlaceholder: 请输Jira 服务器地址
+serverPlaceholder: 请输入 Jira 服务器地址
+serverURLLabel: 服务器地址
+authorizeAndSave: 授权并保存
 openCheck: 开启检测
 interval: 检测间隔
 notifyType: 通知方式
@@ -25,9 +28,43 @@ gotoJira: 直接跳转
 reset: 重置记录
 ignoreAll: 全部隐藏
 testNotify: 测试通知
-testNotifyDesc: 验证通知是否正常显示（不通知选项下不可用）
+testNotifyDesc: 验证通知是否正常显示，点过一次后角标自动隐藏（不通知选项下不可用）
+testNotifyBadge: 点击一次
 testNotifyHint: 系统通知已触发，请检查桌面右上角
 testNotifyDisabled: 当前为"不通知"模式，无法测试
+setupKicker: 小青龙 Jira 待办提醒
+setupTitle: 连接你的 Jira
+setupLead: 输入 Jira 服务器地址，授权后会打开 Jira 登录页。
+jiraAddressTitle: Jira 地址
+jiraAddressHelp: 支持 Jira 首页或任意 Jira 页面链接。
+setupFootnote: 只保存服务器地址，不会保存 Jira 密码。
+jiraHostPermissionDenied: Jira 地址已保存，但未获得访问权限，请重新授权
+jiraHostSavedWithPermission: 已授权并保存 $1
+sectionServerConnection: 服务器连接
+setupAlertTitle: 请先配置 Jira 地址
+setupAlertDescription: 输入 Jira 首页或任意 Jira 页面链接，点击"授权并保存"后再登录。保存时会自动裁切为主机名和端口。
+serverHelper: 指向你的 Jira 服务器地址，扩展通过此地址获取任务数据
+sectionCheckSettings: 检测设置
+openCheckHelper: 开启后自动轮询检测新指派的任务
+intervalHelper: 建议 180 秒（3 分钟）。过快增加服务器压力，过慢可能漏掉通知
+sectionNotifySettings: 通知设置
+notifyTypeHelper: 有新任务指派时，通过选择的方式通知你
+gotoJiraHelper: 开启后，点击通知或任务时自动切换到 Jira 页面
+sectionAdvanced: 高级选项
+jqlCheckFailed: JQL 检测失败
+jqlCheckPassed: JQL 检测通过，已重置记录并重新拉取任务
+jqlCheckButton: 检测
+jiraJql: Jira JQL
+jiraJqlHelper: 自定义后台轮询使用的 Jira 查询语句。留空时使用默认查询条件
+sectionNotifyTest: 通知测试
+sectionDataManage: 数据管理
+hideAllLabel: 全部隐藏：
+hideAllDescription: 旧版隐藏记录入口；当前列表仍以 Jira 当前指派状态为准
+resetLabel: 重置记录：
+resetDescription: 清空本地隐藏和已通知记录，重新拉取任务，用于数据异常修复
+sectionProjectLink: 项目链接
+githubRepo: GitHub 仓库
+githubRepoDesc: 查看源码、提交 Issue 或关注更新
 
 # 空状态鼓励语
 emptyStateTitle: 全部搞定！
@@ -35,8 +72,15 @@ emptyStateDesc: 当前没有指派给你的未解决任务
 nextCheckCountdown: $1 秒后检查
 nextCheckRunning: 正在检查...
 nextCheckDisabled: 检测已关闭
+dragProjectSort: 拖动项目排序
+myTasks: 我的任务
+projectIssueCount: （$1）
 
 # Background
+hostUrlProtocolError: Jira 地址必须以 http:// 或 https:// 开头
+jiraHostPermissionMissing: 未授权访问当前 Jira 地址，请在设置页保存并授权 Jira 地址
+testNotificationTitle: 测试通知
+testNotificationMessage: 如果你能看到这条消息，通知功能正常工作。
 noticeNewCount:
   1: 新增1个Bug
   n: 新增$1个Bug

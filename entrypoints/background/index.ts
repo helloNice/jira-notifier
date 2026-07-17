@@ -12,11 +12,34 @@ import { registerBackgroundService } from "@/src/utils/common/proxyService";
 const JIRA_CHECK_ALARM_NAME = "jira-notifier-check";
 const LOG_PREFIX = "[jira-notifier][debug]";
 
+function getJiraSetupURL() {
+  return browser.runtime.getURL("/popup.html#/setting?setup=jira");
+}
+
 async function hydrateStores() {
   await Promise.all([
     useJiraStore.persist.rehydrate(),
     useSettingStore.persist.rehydrate(),
   ]);
+}
+
+async function openJiraSetupPageOnInstall(
+  details: Browser.runtime.InstalledDetails,
+) {
+  if (details.reason !== "install") return;
+
+  try {
+    await useSettingStore.persist.rehydrate();
+
+    if (useSettingStore.getState().serverURL.trim()) return;
+
+    await browser.tabs.create({
+      active: true,
+      url: getJiraSetupURL(),
+    });
+  } catch (error) {
+    console.error("[jira-notifier] open setup page failed:", error);
+  }
 }
 
 async function taskRun() {
@@ -133,6 +156,10 @@ function initBackground() {
   console.log("[jira-notifier] background initialized");
 
   registerBackgroundService();
+
+  browser.runtime.onInstalled.addListener((details) => {
+    void openJiraSetupPageOnInstall(details);
+  });
 
   browser.notifications.onClicked.addListener(handleNotificationClick);
   browser.notifications.onButtonClicked.addListener((notifId) => {

@@ -96,7 +96,7 @@ async function ensureJiraHostPermission() {
 
   const allowed = await hasHostPermission(serverURL);
   if (!allowed) {
-    throw new Error("未授权访问当前 Jira 地址，请在设置页保存并授权 Jira 地址");
+    throw new Error(i18n.t("jiraHostPermissionMissing"));
   }
 }
 
@@ -587,8 +587,8 @@ export function sendTestNotification(): boolean {
   const { notifyType } = useSettingStore.getState();
   if (notifyType === NotificationType.None) return false;
   jiraHelper.sendNotification(
-    "测试通知",
-    "如果你能看到这条消息，通知功能正常工作。",
+    i18n.t("testNotificationTitle"),
+    i18n.t("testNotificationMessage"),
   );
   return true;
 }
