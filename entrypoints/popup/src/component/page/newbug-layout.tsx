@@ -5,13 +5,14 @@ import {
 } from "@/src/store/settingStore";
 import { JIRAStatus } from "@/src/utils/common/jiraClient";
 import { mergeOrderKeys } from "@/src/utils/common/projectOrder";
-import { Collapse, List, Tag } from "antd";
+import { Button, Collapse, List, Tag, Tooltip, message } from "antd";
 import {
   CheckCircleOutlined,
   ClockCircleOutlined,
+  CopyOutlined,
   HolderOutlined,
 } from "@ant-design/icons";
-import { type DragEvent, useEffect, useState } from "react";
+import { type DragEvent, type MouseEvent, useEffect, useState } from "react";
 import { Version2Models } from "jira.js";
 import cssStyles from "./newbug-layout.module.scss";
 
@@ -27,6 +28,48 @@ function moveProjectKey(
 
   nextKeys.splice(targetIndex + (insertAfter ? 1 : 0), 0, sourceKey);
   return nextKeys;
+}
+
+function legacyCopyText(text: string) {
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.top = "0";
+  textarea.style.left = "-9999px";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+
+  const selection = document.getSelection();
+  const selectedRange = selection?.rangeCount ? selection.getRangeAt(0) : null;
+  const activeElement =
+    document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
+  textarea.focus();
+  textarea.select();
+  const copied = document.execCommand("copy");
+
+  document.body.removeChild(textarea);
+  if (selectedRange) {
+    selection?.removeAllRanges();
+    selection?.addRange(selectedRange);
+  }
+  activeElement?.focus();
+
+  if (!copied) throw new Error("Legacy copy command failed");
+}
+
+async function copyTextToClipboard(text: string) {
+  if (navigator.clipboard?.writeText && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch {
+      // Fall through to the legacy path for extension pages with restricted clipboard access.
+    }
+  }
+
+  legacyCopyText(text);
 }
 
 const BugItem = (props: {
@@ -45,6 +88,20 @@ const BugItem = (props: {
     });
   };
 
+  const onCopyIssueName = async (event: MouseEvent<HTMLElement>) => {
+    event.stopPropagation();
+
+    try {
+      const issueName = String(props.issue.fields.summary ?? "").trim();
+      const copyText = [props.issue.key, issueName].filter(Boolean).join(" ");
+      await copyTextToClipboard(copyText);
+      message.success(i18n.t("copyIssueNameSuccess"));
+    } catch (error) {
+      console.error("[jira-notifier] 复制 Jira 名称失败", error);
+      message.error(i18n.t("copyIssueNameFailed"));
+    }
+  };
+
   return (
     <div
       className={`${cssStyles.bugItem} ${props.index === 0 && cssStyles.isFirst} ${props.index === props.length - 1 && cssStyles.isLast}`}
@@ -59,11 +116,23 @@ const BugItem = (props: {
           />
           <div className={cssStyles.bugKey}>{props.issue.key}</div>
         </div>
-        {props.issue.fields.status.id === JIRAStatus.Reopen && (
-          <Tag className={cssStyles.tag} color="warning">
-            {props.issue.fields.status.name}
-          </Tag>
-        )}
+        <div className={cssStyles.titleActions}>
+          {props.issue.fields.status.id === JIRAStatus.Reopen && (
+            <Tag className={cssStyles.tag} color="warning">
+              {props.issue.fields.status.name}
+            </Tag>
+          )}
+          <Tooltip title={i18n.t("copyIssueName")}>
+            <Button
+              aria-label={i18n.t("copyIssueName")}
+              className={cssStyles.copyButton}
+              icon={<CopyOutlined />}
+              size="small"
+              type="text"
+              onClick={onCopyIssueName}
+            />
+          </Tooltip>
+        </div>
       </div>
 
       <div className={cssStyles.bugContent}>{props.issue.fields.summary}</div>

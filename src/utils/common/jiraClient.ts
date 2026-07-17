@@ -2,6 +2,7 @@ import { i18n } from "#imports";
 import { useJiraStore } from "@/src/store/jiraStore";
 import {
   DEFAULT_JIRA_JQL,
+  DEFAULT_DUE_REMINDER_OFFSETS_MINUTES,
   NotificationType,
   useSettingStore,
 } from "@/src/store/settingStore";
@@ -10,9 +11,155 @@ import { orderItemsByKeys } from "./projectOrder";
 import { Version2Client, Version2Models } from "jira.js";
 
 const LOG_PREFIX = "[jira-notifier][debug]";
+const MINUTE_MS = 60 * 1000;
+const DUE_REMINDER_NOTICED_KEY_LIMIT = 1000;
 
 function getIssueKeys(issues: Version2Models.Issue[]) {
   return issues.map((issue) => issue.key);
+}
+
+interface IDueReminderCandidate {
+  dueAt: number;
+  issue: Version2Models.Issue;
+  offsetMinutes: number;
+}
+
+function normalizeDueReminderOffsets(offsets?: number[]) {
+  return Array.from(
+    new Set(
+      (offsets ?? DEFAULT_DUE_REMINDER_OFFSETS_MINUTES)
+        .map((offset) => Math.round(Number(offset)))
+        .filter((offset) => Number.isFinite(offset) && offset > 0),
+    ),
+  ).sort((a, b) => a - b);
+}
+
+function getIssueField(issue: Version2Models.Issue, fieldName: string) {
+  return (issue.fields as unknown as Record<string, unknown>)[fieldName];
+}
+
+function parseJiraDueAt(dueDateValue: unknown, createdValue: unknown) {
+  if (typeof dueDateValue !== "string" || !dueDateValue.trim()) return null;
+
+  const trimmedValue = dueDateValue.trim();
+  const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmedValue);
+  if (dateOnlyMatch) {
+    const [, year, month, day] = dateOnlyMatch;
+    const createdAt =
+      typeof createdValue === "string" ? new Date(createdValue) : null;
+    const createdTimeIsValid =
+      createdAt !== null && Number.isFinite(createdAt.getTime());
+
+    return new Date(
+      Number(year),
+      Number(month) - 1,
+      Number(day),
+      createdTimeIsValid ? createdAt.getHours() : 23,
+      createdTimeIsValid ? createdAt.getMinutes() : 59,
+      createdTimeIsValid ? createdAt.getSeconds() : 59,
+      createdTimeIsValid ? createdAt.getMilliseconds() : 999,
+    ).getTime();
+  }
+
+  const dueAt = new Date(trimmedValue).getTime();
+  return Number.isFinite(dueAt) ? dueAt : null;
+}
+
+function getDueReminderDurationText(offsetMinutes: number) {
+  if (offsetMinutes % 1440 === 0) {
+    return i18n.t("dueReminderDurationDay", offsetMinutes / 1440);
+  }
+
+  if (offsetMinutes % 60 === 0) {
+    return i18n.t("dueReminderDurationHour", offsetMinutes / 60);
+  }
+
+  return i18n.t("dueReminderDurationMinute", offsetMinutes);
+}
+
+function formatDueAt(dueAt: number) {
+  return new Intl.DateTimeFormat(undefined, {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date(dueAt));
+}
+
+function getDueReminderNoticeKey(
+  issueKey: string,
+  dueAt: number,
+  offsetMinutes: number,
+) {
+  return `${issueKey}|${dueAt}|${offsetMinutes}`;
+}
+
+function collectDueReminderGroups(
+  issues: Version2Models.Issue[],
+  ignoreList: string[],
+  prevDueReminderNoticedKeys: string[],
+) {
+  const settingState = useSettingStore.getState();
+  const dueReminderEnabled = settingState.dueReminderEnabled ?? false;
+  const dueReminderOffsets = settingState.dueReminderOffsets;
+  const currentDueAtByIssueKey = new Map<string, number>();
+
+  issues.forEach((issue) => {
+    const dueAt = parseJiraDueAt(
+      getIssueField(issue, "duedate"),
+      getIssueField(issue, "created"),
+    );
+    if (dueAt) currentDueAtByIssueKey.set(issue.key, dueAt);
+  });
+
+  const cleanedNoticedKeys = prevDueReminderNoticedKeys.filter((noticeKey) => {
+    const [issueKey, dueAtText] = noticeKey.split("|");
+    const currentDueAt = currentDueAtByIssueKey.get(issueKey);
+    return currentDueAt !== undefined && String(currentDueAt) === dueAtText;
+  });
+
+  if (!dueReminderEnabled) {
+    return {
+      dueReminderGroups: [] as Array<[number, IDueReminderCandidate[]]>,
+      dueReminderNoticedKeys: cleanedNoticedKeys,
+    };
+  }
+
+  const now = Date.now();
+  const offsets = normalizeDueReminderOffsets(dueReminderOffsets);
+  const noticedKeySet = new Set(cleanedNoticedKeys);
+  const ignoredIssueKeySet = new Set(ignoreList);
+  const groupMap = new Map<number, IDueReminderCandidate[]>();
+
+  issues.forEach((issue) => {
+    if (ignoredIssueKeySet.has(issue.key)) return;
+
+    const dueAt = currentDueAtByIssueKey.get(issue.key);
+    if (!dueAt || dueAt <= now) return;
+
+    const remainingMinutes = Math.ceil((dueAt - now) / MINUTE_MS);
+    const offsetMinutes = offsets.find((offset) => remainingMinutes <= offset);
+    if (!offsetMinutes) return;
+
+    const noticeKey = getDueReminderNoticeKey(
+      issue.key,
+      dueAt,
+      offsetMinutes,
+    );
+    if (noticedKeySet.has(noticeKey)) return;
+
+    if (!groupMap.has(offsetMinutes)) groupMap.set(offsetMinutes, []);
+    groupMap.get(offsetMinutes)!.push({ dueAt, issue, offsetMinutes });
+    noticedKeySet.add(noticeKey);
+  });
+
+  return {
+    dueReminderGroups: Array.from(groupMap.entries()),
+    dueReminderNoticedKeys: Array.from(noticedKeySet).slice(
+      -DUE_REMINDER_NOTICED_KEY_LIMIT,
+    ),
+  };
 }
 
 export enum JIRAStatus {
@@ -204,6 +351,7 @@ class JiraHelper {
           "created",
           "updated",
           "project",
+          "duedate",
         ],
         maxResults,
         startAt,
@@ -301,6 +449,7 @@ class JiraHelper {
     const {
       hasCheckedIssueBaseline: prevHasCheckedIssueBaseline,
       hasIssueSnapshot: prevHasIssueSnapshot,
+      dueReminderNoticedKeys: prevDueReminderNoticedKeys,
       ignoreList: prevIgnoreList,
       lastCheckedIssueKeys: prevLastCheckedIssueKeys,
       noticedList: prevNoticeList,
@@ -314,6 +463,7 @@ class JiraHelper {
     let hasCheckedIssueBaseline = prevHasCheckedIssueBaseline;
     let lastCheckedIssueKeys = prevLastCheckedIssueKeys;
     let noticedList = prevNoticeList;
+    let dueReminderNoticedKeys = prevDueReminderNoticedKeys;
     // 如果是从 Jira 重新拉取到的完整未解决列表，则同步清理历史记录：
     // - 已解决/已关闭而不在未解决列表里的任务，从 noticedList 移除
     // - 之后若这些任务被重新打开、再次进入未解决列表，后台轮询会重新通知
@@ -357,6 +507,7 @@ class JiraHelper {
     let reopenCount = 0;
     let addedIssueKeys: string[] = [];
     let baselineIssueKeys: string[] | null = null;
+    let dueReminderGroups: Array<[number, IDueReminderCandidate[]]> = [];
     if (options.resetNotificationBaseline) {
       hasCheckedIssueBaseline = true;
       lastCheckedIssueKeys = uniqueLatestIssueKeys;
@@ -385,9 +536,29 @@ class JiraHelper {
 
       hasCheckedIssueBaseline = true;
       lastCheckedIssueKeys = uniqueLatestIssueKeys;
+
+      const dueReminderResult = collectDueReminderGroups(
+        latestIssues,
+        ignoreList,
+        dueReminderNoticedKeys,
+      );
+      dueReminderGroups = dueReminderResult.dueReminderGroups;
+      dueReminderNoticedKeys = dueReminderResult.dueReminderNoticedKeys;
+    } else if (issuesList) {
+      dueReminderNoticedKeys = collectDueReminderGroups(
+        latestIssues,
+        ignoreList,
+        dueReminderNoticedKeys,
+      ).dueReminderNoticedKeys;
     }
 
     const needNoticeIssueKeys = getIssueKeys(needNoticeList);
+    const dueReminderIssueKeys = dueReminderGroups.flatMap(([, group]) =>
+      group.map((item) => item.issue.key),
+    );
+    const hasSentNotification =
+      shouldNotify &&
+      (needNoticeList.length > 0 || dueReminderIssueKeys.length > 0);
     const ignoredAddedIssueKeys = addedIssueKeys.filter((issueKey) =>
       ignoreList.includes(issueKey),
     );
@@ -400,6 +571,7 @@ class JiraHelper {
       ignoreList,
       latestIssueKeys: uniqueLatestIssueKeys,
       needNoticeIssueKeys,
+      dueReminderIssueKeys,
       newCount,
       notifyType: useSettingStore.getState().notifyType,
       previousSnapshotIssueKeys,
@@ -421,6 +593,7 @@ class JiraHelper {
 
     if (shouldNotify) {
       this.noticeIssues(needNoticeList, newCount, reopenCount);
+      this.noticeDueReminderGroups(dueReminderGroups);
     }
 
     useJiraStore.setState({
@@ -440,13 +613,14 @@ class JiraHelper {
       lastCheckLatestIssueKeys: shouldNotify ? uniqueLatestIssueKeys : [],
       lastCheckedIssueKeys,
       lastNotificationAt:
-        shouldNotify && needNoticeList.length > 0
+        hasSentNotification
           ? Date.now()
           : useJiraStore.getState().lastNotificationAt,
       lastNotificationIssueKeys: shouldNotify
-        ? needNoticeList.map((issue) => issue.key)
+        ? [...needNoticeList.map((issue) => issue.key), ...dueReminderIssueKeys]
         : useJiraStore.getState().lastNotificationIssueKeys,
       noticedList,
+      dueReminderNoticedKeys,
     });
   }
 
@@ -480,6 +654,38 @@ class JiraHelper {
       total,
     });
     this.sendNotification(title, message, list[0].key);
+  }
+
+  public noticeDueReminderGroups(
+    dueReminderGroups: Array<[number, IDueReminderCandidate[]]>,
+  ) {
+    dueReminderGroups.forEach(([offsetMinutes, group]) => {
+      if (group.length === 0) return;
+
+      const durationText = getDueReminderDurationText(offsetMinutes);
+      const title = i18n.t("dueReminderTitle", [durationText]);
+      const firstIssueText = `${group[0].issue.key} ${group[0].issue.fields.summary}`;
+      const message =
+        group.length > 1
+          ? i18n.t("dueReminderMultiMessage", [
+              group.length,
+              firstIssueText,
+              durationText,
+            ])
+          : i18n.t("dueReminderMessage", [
+              firstIssueText,
+              formatDueAt(group[0].dueAt),
+            ]);
+
+      console.log(`${LOG_PREFIX} dueReminder:send`, {
+        durationText,
+        issueKeys: group.map((item) => item.issue.key),
+        message,
+        offsetMinutes,
+        title,
+      });
+      this.sendNotification(title, message, group[0].issue.key);
+    });
   }
 
   /**

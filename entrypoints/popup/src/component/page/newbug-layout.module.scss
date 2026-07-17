@@ -184,6 +184,37 @@
     }
   }
 
+  .titleActions {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .copyButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    color: var(--jn-text-secondary);
+    transition:
+      background-color 0.16s ease,
+      color 0.16s ease,
+      transform 0.12s ease;
+
+    &:hover,
+    &:focus-visible {
+      background: var(--jn-accent-soft);
+      color: var(--jn-accent);
+    }
+
+    &:active {
+      transform: translateY(1px);
+    }
+  }
+
   .bugContent {
     display: -webkit-box;
     overflow: hidden;

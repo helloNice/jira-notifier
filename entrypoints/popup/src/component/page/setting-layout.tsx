@@ -1,5 +1,6 @@
 import {
   DEFAULT_JIRA_JQL,
+  DEFAULT_DUE_REMINDER_OFFSETS_MINUTES,
   ISettingData,
   NEXT_CHECK_AT_STORAGE_KEY,
   NotificationType,
@@ -35,6 +36,7 @@ import {
   Alert,
   App,
   Button,
+  Checkbox,
   Collapse,
   Form,
   Input,
@@ -50,6 +52,7 @@ import cssStyle from "./setting-layout.module.scss";
 const MIN_INTERVAL_SECONDS = 60;
 const MAX_INTERVAL_SECONDS = 600;
 const GITHUB_URL = "https://github.com/helloNice/jira-notifier";
+const DUE_REMINDER_OFFSET_VALUES = [1440, 300, 60, 15];
 
 function normalizeInterval(value: number | null | undefined) {
   const interval = Number.isFinite(value) ? Math.round(value as number) : 180;
@@ -57,6 +60,17 @@ function normalizeInterval(value: number | null | undefined) {
     MAX_INTERVAL_SECONDS,
     Math.max(MIN_INTERVAL_SECONDS, interval),
   );
+}
+
+function normalizeDueReminderOffsets(value: unknown) {
+  const validOffsets = new Set(DUE_REMINDER_OFFSET_VALUES);
+  const offsets = Array.isArray(value)
+    ? value
+        .map((offset) => Number(offset))
+        .filter((offset) => validOffsets.has(offset))
+    : DEFAULT_DUE_REMINDER_OFFSETS_MINUTES;
+
+  return offsets;
 }
 
 function getErrorMessage(error: unknown) {
@@ -82,15 +96,27 @@ function getErrorMessage(error: unknown) {
 
 function SettingLayout() {
   const settingData = useSettingStore((state) => state);
+  const normalizedDueReminderOffsets = normalizeDueReminderOffsets(
+    settingData.dueReminderOffsets,
+  );
   const normalizedSettingData = {
     ...settingData,
     interval: normalizeInterval(settingData.interval),
     jiraJql: settingData.jiraJql || DEFAULT_JIRA_JQL,
+    dueReminderEnabled: settingData.dueReminderEnabled ?? false,
+    dueReminderOffsets: normalizedDueReminderOffsets,
     notifyType:
       settingData.notifyType === NotificationType.None
         ? NotificationType.None
         : NotificationType.System,
   };
+  const dueReminderOffsetsSignature = normalizedDueReminderOffsets.join(",");
+  const dueReminderOffsetOptions = [
+    { label: i18n.t("dueReminderOffsetOneDay"), value: 1440 },
+    { label: i18n.t("dueReminderOffsetFiveHours"), value: 300 },
+    { label: i18n.t("dueReminderOffsetOneHour"), value: 60 },
+    { label: i18n.t("dueReminderOffsetFifteenMinutes"), value: 15 },
+  ];
   const clearIgnore = useJiraStore((state) => state.clearIgnore);
   const hideAll = useJiraStore((state) => state.ignoreAll);
   const { message } = App.useApp();
@@ -114,6 +140,8 @@ function SettingLayout() {
   }, [
     form,
     normalizedSettingData.interval,
+    normalizedSettingData.dueReminderEnabled,
+    dueReminderOffsetsSignature,
     normalizedSettingData.isAutoFocused,
     normalizedSettingData.hasClickedTestNotify,
     normalizedSettingData.isOpen,
@@ -278,6 +306,11 @@ function SettingLayout() {
           const safeChangedValues = { ...changedValues };
           delete safeChangedValues.jiraJql;
           delete safeChangedValues.serverURL;
+          if (safeChangedValues.dueReminderOffsets !== undefined) {
+            safeChangedValues.dueReminderOffsets = normalizeDueReminderOffsets(
+              safeChangedValues.dueReminderOffsets,
+            );
+          }
 
           if (Object.keys(safeChangedValues).length > 0) {
             updateSettings(safeChangedValues);
@@ -462,37 +495,87 @@ function SettingLayout() {
                   </div>
                 ),
                 children: (
-                  <div className={cssStyle.field}>
-                    {jqlCheckError && (
-                      <Alert
-                        showIcon
-                        type="error"
-                        message={i18n.t("jqlCheckFailed")}
-                        description={jqlCheckError}
-                        className={cssStyle.jqlAlert}
-                      />
-                    )}
-                    <Form.Item label={i18n.t("jiraJql")}>
-                      <div className={cssStyle.jqlControlRow}>
-                        <Form.Item name="jiraJql" noStyle>
-                          <Input.TextArea
-                            autoSize={{ minRows: 4, maxRows: 8 }}
-                            placeholder={DEFAULT_JIRA_JQL}
+                  <>
+                    <div className={cssStyle.field}>
+                      <div
+                        className={`${cssStyle.settingPanel} ${cssStyle.dueReminderPanel}`}
+                      >
+                        <div className={cssStyle.dueReminderPanelHeader}>
+                          <div className={cssStyle.settingLineCopy}>
+                            <div className={cssStyle.settingLineTitle}>
+                              {i18n.t("dueReminder")}
+                            </div>
+                            <p className={cssStyle.helper}>
+                              {i18n.t("dueReminderHelper")}
+                            </p>
+                          </div>
+                          <Form.Item
+                            name="dueReminderEnabled"
+                            valuePropName="checked"
+                            noStyle
+                          >
+                            <Switch />
+                          </Form.Item>
+                        </div>
+
+                        <div className={cssStyle.dueReminderOptionsHeader}>
+                          <span>{i18n.t("dueReminderOffsets")}</span>
+                        </div>
+                        <Form.Item
+                          name="dueReminderOffsets"
+                          className={cssStyle.compactFormItem}
+                        >
+                          <Checkbox.Group
+                            className={cssStyle.dueReminderCheckboxGroup}
+                            disabled={!normalizedSettingData.dueReminderEnabled}
+                            options={dueReminderOffsetOptions}
                           />
                         </Form.Item>
-                        <Button
-                          type="primary"
-                          loading={isCheckingJql}
-                          onClick={checkJiraJql}
-                        >
-                          {i18n.t("jqlCheckButton")}
-                        </Button>
+                        <p className={cssStyle.helper}>
+                          {i18n.t("dueReminderOffsetsHelper")}
+                        </p>
                       </div>
-                    </Form.Item>
-                    <p className={cssStyle.helper}>
-                      {i18n.t("jiraJqlHelper")}
-                    </p>
-                  </div>
+                    </div>
+
+                    <div className={cssStyle.field}>
+                      <div
+                        className={`${cssStyle.settingPanel} ${cssStyle.jqlPanel}`}
+                      >
+                        <div className={cssStyle.settingPanelHeader}>
+                          <span>{i18n.t("jiraJql")}</span>
+                        </div>
+                        {jqlCheckError && (
+                          <Alert
+                            showIcon
+                            type="error"
+                            message={i18n.t("jqlCheckFailed")}
+                            description={jqlCheckError}
+                            className={cssStyle.jqlAlert}
+                          />
+                        )}
+                        <Form.Item className={cssStyle.compactFormItem}>
+                          <div className={cssStyle.jqlControlRow}>
+                            <Form.Item name="jiraJql" noStyle>
+                              <Input.TextArea
+                                autoSize={{ minRows: 4, maxRows: 8 }}
+                                placeholder={DEFAULT_JIRA_JQL}
+                              />
+                            </Form.Item>
+                            <Button
+                              type="primary"
+                              loading={isCheckingJql}
+                              onClick={checkJiraJql}
+                            >
+                              {i18n.t("jqlCheckButton")}
+                            </Button>
+                          </div>
+                        </Form.Item>
+                        <p className={cssStyle.helper}>
+                          {i18n.t("jiraJqlHelper")}
+                        </p>
+                      </div>
+                    </div>
+                  </>
                 ),
               },
             ]}

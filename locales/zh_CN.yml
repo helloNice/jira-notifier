@@ -51,6 +51,14 @@ sectionNotifySettings: 通知设置
 notifyTypeHelper: 有新任务指派时，通过选择的方式通知你
 gotoJiraHelper: 开启后，点击通知或任务时自动切换到 Jira 页面
 sectionAdvanced: 高级选项
+dueReminder: 到期提醒
+dueReminderHelper: 开启后按 Jira 截止日期提醒即将到期的任务
+dueReminderOffsets: 提醒时间
+dueReminderOffsetsHelper: 使用 Jira 的 duedate 字段；日期型截止日会套用任务创建时间的时分秒
+dueReminderOffsetOneDay: 1天前
+dueReminderOffsetFiveHours: 5小时前
+dueReminderOffsetOneHour: 1小时前
+dueReminderOffsetFifteenMinutes: 15分钟前
 jqlCheckFailed: JQL 检测失败
 jqlCheckPassed: JQL 检测通过，已重置记录并重新拉取任务
 jqlCheckButton: 检测
@@ -75,6 +83,9 @@ nextCheckDisabled: 检测已关闭
 dragProjectSort: 拖动项目排序
 myTasks: 我的任务
 projectIssueCount: （$1）
+copyIssueName: 复制 Jira 编号和名称
+copyIssueNameSuccess: 已复制 Jira 编号和名称
+copyIssueNameFailed: 复制失败，请手动复制
 
 # Background
 hostUrlProtocolError: Jira 地址必须以 http:// 或 https:// 开头
@@ -93,3 +104,15 @@ noticeAssignTitle:
   1: 新任务指派
   n: 新任务指派（$1个）
 noticeAssignMessage: 包括「$2」在内的 $1 个新任务
+dueReminderDurationDay:
+  1: 1天
+  n: $1天
+dueReminderDurationHour:
+  1: 1小时
+  n: $1小时
+dueReminderDurationMinute:
+  1: 1分钟
+  n: $1分钟
+dueReminderTitle: 任务即将到期（$1）
+dueReminderMessage: $1 截止：$2
+dueReminderMultiMessage: 包括「$2」在内的 $1 个任务即将在 $3 内到期

@@ -158,6 +158,31 @@
   margin-bottom: 0 !important;
 }
 
+.dueReminderPanel {
+  display: grid;
+  gap: 10px;
+}
+
+.jqlPanel {
+  display: grid;
+  gap: 8px;
+}
+
+.dueReminderPanelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dueReminderOptionsHeader {
+  margin-bottom: 7px;
+  color: var(--jn-text-primary);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
 .notifyRadioGroup {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -170,6 +195,20 @@
     padding-inline: 8px;
     font-size: 12px;
     line-height: 28px;
+  }
+}
+
+.dueReminderCheckboxGroup {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 10px;
+  width: 100%;
+
+  :global(.ant-checkbox-wrapper) {
+    margin-inline-start: 0;
+    color: var(--jn-text-primary);
+    font-size: 12px;
+    line-height: 1.35;
   }
 }
 
@@ -276,7 +315,7 @@
 }
 
 .jqlAlert {
-  margin-bottom: 8px;
+  margin-bottom: 0;
 }
 
 .setupAlert {

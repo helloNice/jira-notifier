@@ -47,6 +47,14 @@ export type GeneratedI18nStructure = {
   "notifyTypeHelper": { substitutions: 0, plural: false };
   "gotoJiraHelper": { substitutions: 0, plural: false };
   "sectionAdvanced": { substitutions: 0, plural: false };
+  "dueReminder": { substitutions: 0, plural: false };
+  "dueReminderHelper": { substitutions: 0, plural: false };
+  "dueReminderOffsets": { substitutions: 0, plural: false };
+  "dueReminderOffsetsHelper": { substitutions: 0, plural: false };
+  "dueReminderOffsetOneDay": { substitutions: 0, plural: false };
+  "dueReminderOffsetFiveHours": { substitutions: 0, plural: false };
+  "dueReminderOffsetOneHour": { substitutions: 0, plural: false };
+  "dueReminderOffsetFifteenMinutes": { substitutions: 0, plural: false };
   "jqlCheckFailed": { substitutions: 0, plural: false };
   "jqlCheckPassed": { substitutions: 0, plural: false };
   "jqlCheckButton": { substitutions: 0, plural: false };
@@ -69,6 +77,9 @@ export type GeneratedI18nStructure = {
   "dragProjectSort": { substitutions: 0, plural: false };
   "myTasks": { substitutions: 0, plural: false };
   "projectIssueCount": { substitutions: 1, plural: false };
+  "copyIssueName": { substitutions: 0, plural: false };
+  "copyIssueNameSuccess": { substitutions: 0, plural: false };
+  "copyIssueNameFailed": { substitutions: 0, plural: false };
   "hostUrlProtocolError": { substitutions: 0, plural: false };
   "jiraHostPermissionMissing": { substitutions: 0, plural: false };
   "testNotificationTitle": { substitutions: 0, plural: false };
@@ -79,6 +90,12 @@ export type GeneratedI18nStructure = {
   "noticeBtn": { substitutions: 0, plural: false };
   "noticeAssignTitle": { substitutions: 1, plural: true };
   "noticeAssignMessage": { substitutions: 2, plural: false };
+  "dueReminderDurationDay": { substitutions: 1, plural: true };
+  "dueReminderDurationHour": { substitutions: 1, plural: true };
+  "dueReminderDurationMinute": { substitutions: 1, plural: true };
+  "dueReminderTitle": { substitutions: 1, plural: false };
+  "dueReminderMessage": { substitutions: 2, plural: false };
+  "dueReminderMultiMessage": { substitutions: 3, plural: false };
   "@@extension_id": { substitutions: 0, plural: false };
   "@@ui_locale": { substitutions: 0, plural: false };
   "@@bidi_dir": { substitutions: 0, plural: false };

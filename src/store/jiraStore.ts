@@ -15,6 +15,7 @@ interface IJiraData {
   projectOrderKeys: string[];
   ignoreList: string[];
   noticedList: string[];
+  dueReminderNoticedKeys: string[];
   hasIssueSnapshot: boolean;
   hasCheckedIssueBaseline: boolean;
   lastCheckedIssueKeys: string[];
@@ -44,6 +45,7 @@ export const useJiraStore = create<IJiraData & IJiraActions>()(
       projectOrderKeys: [],
       ignoreList: [],
       noticedList: [],
+      dueReminderNoticedKeys: [],
       hasIssueSnapshot: false,
       hasCheckedIssueBaseline: false,
       lastCheckedIssueKeys: [],
@@ -71,6 +73,7 @@ export const useJiraStore = create<IJiraData & IJiraActions>()(
         set({
           ignoreList: [],
           noticedList: [],
+          dueReminderNoticedKeys: [],
           hasIssueSnapshot: false,
           hasCheckedIssueBaseline: false,
           lastCheckedIssueKeys: [],

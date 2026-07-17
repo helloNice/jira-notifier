@@ -7,6 +7,7 @@ export const SETTING_STORAGE_KEY = "user-setting";
 export const NEXT_CHECK_AT_STORAGE_KEY = "jira-next-check-at";
 export const DEFAULT_JIRA_JQL =
   "resolution = Unresolved AND assignee in (currentUser()) ORDER BY updated DESC";
+export const DEFAULT_DUE_REMINDER_OFFSETS_MINUTES: number[] = [];
 
 export enum NotificationType {
   None = 0,
@@ -21,6 +22,8 @@ export interface ISettingData {
   serverURL: string;
   interval: number;
   jiraJql: string;
+  dueReminderEnabled: boolean;
+  dueReminderOffsets: number[];
 }
 
 export const useSettingStore = create<ISettingData>()(
@@ -33,6 +36,8 @@ export const useSettingStore = create<ISettingData>()(
       serverURL: "",
       interval: 180,
       jiraJql: DEFAULT_JIRA_JQL,
+      dueReminderEnabled: false,
+      dueReminderOffsets: DEFAULT_DUE_REMINDER_OFFSETS_MINUTES,
     }),
     {
       name: SETTING_STORAGE_KEY,

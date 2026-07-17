@@ -49,6 +49,14 @@ sectionNotifySettings: Notification settings
 notifyTypeHelper: Choose how to notify you when new tasks are assigned
 gotoJiraHelper: When enabled, notification and task clicks switch directly to Jira
 sectionAdvanced: Advanced options
+dueReminder: Due reminder
+dueReminderHelper: Remind you when Jira tasks are close to their due date
+dueReminderOffsets: Reminder times
+dueReminderOffsetsHelper: Uses Jira duedate. Date-only due dates reuse the task creation time of day
+dueReminderOffsetOneDay: 1 day before
+dueReminderOffsetFiveHours: 5 hours before
+dueReminderOffsetOneHour: 1 hour before
+dueReminderOffsetFifteenMinutes: 15 minutes before
 jqlCheckFailed: JQL check failed
 jqlCheckPassed: JQL check passed. Records were reset and tasks are being fetched again
 jqlCheckButton: Check
@@ -73,6 +81,9 @@ nextCheckDisabled: Detection off
 dragProjectSort: Drag to sort projects
 myTasks: My tasks
 projectIssueCount: ($1)
+copyIssueName: Copy Jira key and name
+copyIssueNameSuccess: Jira key and name copied
+copyIssueNameFailed: Copy failed. Please copy it manually
 
 hostUrlProtocolError: Jira address must start with http:// or https://
 jiraHostPermissionMissing: Access to the current Jira address is not authorized. Save and authorize the Jira address in Settings first
@@ -90,3 +101,15 @@ noticeAssignTitle:
   1: New task assigned
   n: New tasks assigned ($1)
 noticeAssignMessage: $1 new tasks including "$2"
+dueReminderDurationDay:
+  1: 1 day
+  n: $1 days
+dueReminderDurationHour:
+  1: 1 hour
+  n: $1 hours
+dueReminderDurationMinute:
+  1: 1 minute
+  n: $1 minutes
+dueReminderTitle: Task due soon ($1)
+dueReminderMessage: "$1 due at $2"
+dueReminderMultiMessage: $1 tasks due within $3 including "$2"
