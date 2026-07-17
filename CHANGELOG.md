@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.3.1](https://github.com/jiangjiji/jira-notifier/compare/v1.2.10...v1.3.1) (2026-07-17)
+
+
+### Features
+
+* 新增任务复制按钮，复制内容为 Jira Key 加任务标题
+* 新增 Jira 到期提醒，支持 1 天、5 小时、1 小时、15 分钟前提醒
+* 支持自定义 Jira JQL 校验后保存，并重新建立通知基线
+* 支持项目分组拖动排序和下一次检查倒计时展示
+* 首次安装时自动打开 Jira 地址配置页，并通过 host permission 授权 Jira 地址
+
+
+### Build
+
+* 新增 Windows 打包脚本，支持 Chrome 和 Edge 打包
+* 暂时关闭 Firefox 打包流程
+
 ## [1.2.0](https://github.com/jiangjiji/jira-notifier/compare/v1.1.0...v1.2.0) (2025-07-14)
 
 
